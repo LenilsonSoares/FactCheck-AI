@@ -12,22 +12,29 @@ TERMS = ["eleição", "bolsonaro", "lula", "pt", "campanha", "urna", "voto", "fr
 
 def collect_with_factcheckexplorer(terms):
     try:
-        from factcheckexplorer import FactCheckExplorer
+        from factcheckexplorer import FactCheckLib
     except Exception as e:
         return None, str(e)
 
-    fce = FactCheckExplorer()
     rows = []
     for t in terms:
         print(f"🔍 buscando via factcheckexplorer: {t}")
         try:
-            results = fce.search(t)
-            for item in results:
+            lib = FactCheckLib(t)
+            raw = lib.fetch_data()
+            if not raw:
+                print(f"⚠ nenhuma resposta para termo {t}")
+                continue
+            data = FactCheckLib.clean_json(raw)
+            items = lib.extract_info(data)
+            for item in items:
                 rows.append({
-                    "texto": getattr(item, 'claim', '') or getattr(item, 'text', ''),
-                    "veredito": getattr(item, 'rating', None),
-                    "fonte": getattr(item, 'publisher', None),
-                    "data": getattr(item, 'date', None),
+                    "texto": item.get("Claim") or '',
+                    "veredito": item.get("Verdict"),
+                    "fonte": item.get("Source Name"),
+                    "data": item.get("Review Publication Date"),
+                    "image_url": item.get("Image URL"),
+                    "tags": item.get("Tags"),
                     "termo": t,
                 })
         except Exception as e:

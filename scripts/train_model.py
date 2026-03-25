@@ -25,10 +25,18 @@ def infer_label_column(df: pd.DataFrame):
 def normalize_label(val: str) -> int:
     if pd.isna(val):
         return 0
-    s = str(val).lower()
-    if any(tok in s for tok in ["true", "verdade", "real", "correto", "yes", "1"]):
+    s = str(val).lower().strip()
+
+    positive_tokens = [
+        "true", "verdade", "verificado", "comprovado", "confirmado", "correto", "verdadeiro", "sim", "yes", "1"
+    ]
+    negative_tokens = [
+        "false", "falso", "mentira", "errado", "enganoso", "enganador", "distorcido", "fora de contexto", "fora_de_contexto", "fake", "fraude", "não", "nao", "no", "0"
+    ]
+
+    if any(tok in s for tok in positive_tokens):
         return 1
-    if any(tok in s for tok in ["false", "falso", "mentira", "no", "0"]):
+    if any(tok in s for tok in negative_tokens):
         return 0
     try:
         v = float(s)
@@ -126,8 +134,10 @@ if __name__ == "__main__":
             break
 
     if dataset is None:
-        print("Nenhum dataset encontrado. Coloque o CSV em data/processed/dataset_eleicoes.csv ou data/raw/eleições.csv")
+        print("Nenhum dataset encontrado. Coloque o CSV em data/processed/dataset_eleicoes.csv ou data/dataset_eleicoes.csv")
         sys.exit(1)
+
+    print(f"Usando dataset: {dataset}")
 
     out_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend", "app", "ml_models"))
     train_and_save(dataset, out_dir)
@@ -201,7 +211,17 @@ def prepare_xy(df: pd.DataFrame):
         raise ValueError("Não foi possível identificar coluna de texto no dataset.")
 
     X = df[text_col].fillna("")
-    y = df[label_col].apply(normalize_label)
+    # preserve original labels for debugging
+    original_labels = df[label_col].astype(str).fillna("")
+    y = original_labels.apply(normalize_label)
+
+    # debug: mostrar distribuição de rótulos originais e após normalização
+    try:
+        print("Rótulos originais (exemplos):", original_labels.dropna().unique()[:10])
+    except Exception:
+        pass
+    print("Distribuição após normalização:")
+    print(y.value_counts(dropna=False).to_dict())
     return X, y
 
 
