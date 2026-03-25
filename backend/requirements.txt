@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+pandas
+scikit-learn
+requests
+google-api-python-client
+python-dotenv
+git+https://github.com/GONZOsint/factcheckexplorer.git
