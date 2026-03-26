@@ -1,296 +1,74 @@
 import os
 import sys
 import pandas as pd
+import joblib
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
-import joblib
+from sklearn.metrics import accuracy_score, classification_report
 
-
-def infer_label_column(df: pd.DataFrame):
-    candidates = ["label", "veredito", "rating", "truth", "y"]
-    for c in candidates:
-        if c in df.columns:
-            return c
-    for c in df.columns:
-        if df[c].dtype == object:
-            nunique = df[c].nunique()
-            if 2 <= nunique <= 10:
-                return c
-    return None
-
-
-def normalize_label(val: str) -> int:
-    if pd.isna(val):
-        return 0
+def normalize_label(val):
+    """Mapeia os vereditos variados da API para 0 (Falso) ou 1 (Verdadeiro)."""
+    if pd.isna(val): return 0
     s = str(val).lower().strip()
+    # Tokens que indicam veracidade (Classe 1)
+    pos = ["true", "verdade", "fato", "correto", "verificado", "sim", "1"]
+    if any(t in s for t in pos): return 1
+    return 0 # Padrão: Falso/Inconclusivo (Classe 0)
 
-    positive_tokens = [
-        "true", "verdade", "verificado", "comprovado", "confirmado", "correto", "verdadeiro", "sim", "yes", "1"
-    ]
-    negative_tokens = [
-        "false", "falso", "mentira", "errado", "enganoso", "enganador", "distorcido", "fora de contexto", "fora_de_contexto", "fake", "fraude", "não", "nao", "no", "0"
-    ]
+def train_fact_checker():
+    # 1. Configuração de Caminhos (Caminhos relativos sêniores)
+    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    dataset_path = os.path.join(root, "data", "dataset_eleicoes.csv")
+    model_dir = os.path.join(root, "backend", "app", "ml_models")
+    
+    if not os.path.exists(dataset_path):
+        print(f"❌ Erro: Dataset não encontrado em {dataset_path}")
+        return
 
-    if any(tok in s for tok in positive_tokens):
-        return 1
-    if any(tok in s for tok in negative_tokens):
-        return 0
-    try:
-        v = float(s)
-        return 1 if v > 0.5 else 0
-    except Exception:
-        return 0
-
-
-def load_dataset(path: str) -> pd.DataFrame:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Dataset não encontrado em: {path}")
-    df = pd.read_csv(path)
-    return df
-
-
-def prepare_xy(df: pd.DataFrame):
-    label_col = infer_label_column(df)
-    if label_col is None:
-        raise ValueError("Não foi possível inferir a coluna de labels.")
-
-    text_col = None
-    for c in ["texto", "text", "claim", "afirmacao", "Claim"]:
-        if c in df.columns:
-            text_col = c
-            break
-    if text_col is None:
-        for c in df.columns:
-            if df[c].dtype == object:
-                text_col = c
-                break
-    if text_col is None:
-        raise ValueError("Não foi possível identificar coluna de texto no dataset.")
+    # 2. Carga e Preparação (Data Engineering)
+    print(f"📊 Carregando dataset: {dataset_path}")
+    df = pd.read_csv(dataset_path)
+    
+    # Identificar colunas (Resiliência)
+    text_col = 'texto' if 'texto' in df.columns else df.columns[0]
+    label_col = 'veredito' if 'veredito' in df.columns else df.columns[1]
 
     X = df[text_col].fillna("")
     y = df[label_col].apply(normalize_label)
-    return X, y
 
+    print(f"📈 Distribuição de classes: {y.value_counts().to_dict()}")
 
-def train_and_save(dataset_path: str, out_dir: str):
-    df = load_dataset(dataset_path)
-    X, y = prepare_xy(df)
+    # 3. Divisão de Treino/Teste (Stratify garante proporção de classes)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42, stratify=y if y.nunique() > 1 else None
+    )
 
-    # decide stratify
-    value_counts = y.value_counts()
-    use_stratify = True
-    if len(value_counts) <= 1 or value_counts.min() < 2:
-        use_stratify = False
-        print("Aviso: distribuição de classes irregular — 'stratify' desabilitado para train_test_split.")
-
-    stratify_arg = y if use_stratify else None
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=stratify_arg)
-
+    # 4. Pipeline de ML (O Coração da IA)
+    # Sênior usa class_weight='balanced' para lidar com o excesso de 'Falsos'
     pipeline = Pipeline([
-        ("tfidf", TfidfVectorizer(max_features=20000, ngram_range=(1,2))),
-        ("clf", LogisticRegression(max_iter=1000))
+        ("tfidf", TfidfVectorizer(max_features=10000, ngram_range=(1, 2))),
+        ("clf", LogisticRegression(max_iter=1000, class_weight='balanced')) 
     ])
 
-    print("Treinando modelo...")
+    print("🧠 Treinando modelo (Logistic Regression com Pesos Balanceados)...")
     pipeline.fit(X_train, y_train)
 
+    # 5. Avaliação (Métricas Reais)
     preds = pipeline.predict(X_test)
-
-    acc = accuracy_score(y_test, preds)
-    prec = precision_score(y_test, preds, zero_division=0)
-    rec = recall_score(y_test, preds, zero_division=0)
-    f1 = f1_score(y_test, preds, zero_division=0)
-
-    print("Métricas de validação:")
-    print(f"Accuracy: {acc:.4f}")
-    print(f"Precision: {prec:.4f}")
-    print(f"Recall: {rec:.4f}")
-    print(f"F1-score: {f1:.4f}")
-    print("\nClassification report:\n")
+    print("\n✅ Métricas de Validação:")
+    print(f"Acurácia: {accuracy_score(y_test, preds):.4f}")
+    print("\nRelatório de Classificação:")
     print(classification_report(y_test, preds, zero_division=0))
 
-    os.makedirs(out_dir, exist_ok=True)
-    model_path = os.path.join(out_dir, "modelo.pkl")
-    joblib.dump(pipeline, model_path)
-    print(f"Modelo salvo em: {model_path}")
-
-
-if __name__ == "__main__":
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    candidates = [
-        os.path.join(root, "data", "processed", "dataset_eleicoes.csv"),
-        os.path.join(root, "data", "processed", "dataset_limpo.csv"),
-        os.path.join(root, "data", "raw", "eleições.csv"),
-        os.path.join(root, "data", "raw", "dataset_raw.csv"),
-    ]
-
-    dataset = None
-    for p in candidates:
-        if os.path.exists(p):
-            dataset = p
-            break
-
-    if dataset is None:
-        print("Nenhum dataset encontrado. Coloque o CSV em data/processed/dataset_eleicoes.csv ou data/dataset_eleicoes.csv")
-        sys.exit(1)
-
-    print(f"Usando dataset: {dataset}")
-
-    out_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend", "app", "ml_models"))
-    train_and_save(dataset, out_dir)
-import os
-import sys
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, classification_report
-import joblib
-
-
-def infer_label_column(df: pd.DataFrame):
-    candidates = ["label", "veredito", "rating", "truth", "y"]
-    for c in candidates:
-        if c in df.columns:
-            return c
-    # try to guess a textual column with small set of unique values
-    for c in df.columns:
-        if df[c].dtype == object:
-            nunique = df[c].nunique()
-            if 2 <= nunique <= 10:
-                return c
-    return None
-
-
-def normalize_label(val: str) -> int:
-    if pd.isna(val):
-        return 0
-    s = str(val).lower()
-    if any(tok in s for tok in ["true", "verdade", "real", "correto", "yes", "1"]):
-        return 1
-    if any(tok in s for tok in ["false", "falso", "mentira", "no", "0"]):
-        return 0
-    # fallback: try numeric
-    try:
-        v = float(s)
-        return 1 if v > 0.5 else 0
-    except Exception:
-        return 0
-
-
-def load_dataset(path: str) -> pd.DataFrame:
-    if not os.path.exists(path):
-        raise FileNotFoundError(f"Dataset não encontrado em: {path}")
-    df = pd.read_csv(path)
-    return df
-
-
-def prepare_xy(df: pd.DataFrame):
-    label_col = infer_label_column(df)
-    if label_col is None:
-        raise ValueError("Não foi possível inferir a coluna de labels. Certifique-se de ter 'veredito' ou 'label' no CSV.")
-
-    # attempt to find text column
-    text_col = None
-    for c in ["texto", "text", "claim", "afirmacao"]:
-        if c in df.columns:
-            text_col = c
-            break
-    if text_col is None:
-        # fallback to first object column
-        for c in df.columns:
-            if df[c].dtype == object:
-                text_col = c
-                break
-
-    if text_col is None:
-        raise ValueError("Não foi possível identificar coluna de texto no dataset.")
-
-    X = df[text_col].fillna("")
-    # preserve original labels for debugging
-    original_labels = df[label_col].astype(str).fillna("")
-    y = original_labels.apply(normalize_label)
-
-    # debug: mostrar distribuição de rótulos originais e após normalização
-    try:
-        print("Rótulos originais (exemplos):", original_labels.dropna().unique()[:10])
-    except Exception:
-        pass
-    print("Distribuição após normalização:")
-    print(y.value_counts(dropna=False).to_dict())
-    return X, y
-
-
-def train_and_save(dataset_path: str, out_dir: str):
-    df = load_dataset(dataset_path)
-    X, y = prepare_xy(df)
-
-    # decidir se usamos stratify: somente quando todas as classes tiverem pelo menos 2 amostras
-    value_counts = y.value_counts()
-    use_stratify = True
-    if len(value_counts) <= 1:
-        use_stratify = False
-    elif value_counts.min() < 2:
-        use_stratify = False
-
-    if not use_stratify:
-        print("Aviso: distribuição de classes irregular — 'stratify' desabilitado para train_test_split.")
-
-    stratify_arg = y if use_stratify else None
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=stratify_arg)
-
-    pipeline = Pipeline([
-        ("tfidf", TfidfVectorizer(max_features=20000, ngram_range=(1,2))),
-        ("clf", LogisticRegression(max_iter=1000))
-    ])
-
-    print("Treinando modelo... isso pode levar alguns segundos dependendo do dataset")
-    pipeline.fit(X_train, y_train)
-
-    preds = pipeline.predict(X_test)
-
-    acc = accuracy_score(y_test, preds)
-    prec = precision_score(y_test, preds, zero_division=0)
-    rec = recall_score(y_test, preds, zero_division=0)
-    f1 = f1_score(y_test, preds, zero_division=0)
-
-    print("Métricas de validação:")
-    print(f"Accuracy: {acc:.4f}")
-    print(f"Precision: {prec:.4f}")
-    print(f"Recall: {rec:.4f}")
-    print(f"F1-score: {f1:.4f}")
-    print("\nClassification report:\n")
-    print(classification_report(y_test, preds, zero_division=0))
-
-    os.makedirs(out_dir, exist_ok=True)
-    model_path = os.path.join(out_dir, "model.pkl")
-    joblib.dump(pipeline, model_path)
-    print(f"Modelo salvo em: {model_path}")
-
+    # 6. Exportação (Salvando os artefatos)
+    os.makedirs(model_dir, exist_ok=True)
+    model_file = os.path.join(model_dir, "modelo.pkl")
+    
+    # Salvamos o pipeline COMPLETO (Vetorizador + Modelo) em um único arquivo
+    joblib.dump(pipeline, model_file)
+    print(f"\n🏆 Modelo exportado com sucesso para: {model_file}")
 
 if __name__ == "__main__":
-    # procura dataset em data/processed ou data/
-    root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
-    candidates = [
-        os.path.join(root, "data", "processed", "dataset_eleicoes.csv"),
-        os.path.join(root, "data", "dataset_eleicoes.csv"),
-        os.path.join(root, "data", "dataset.csv"),
-        os.path.join(root, "data", "raw", "dataset_raw.csv"),
-    ]
-
-    dataset = None
-    for p in candidates:
-        if os.path.exists(p):
-            dataset = p
-            break
-
-    if dataset is None:
-        print("Nenhum dataset encontrado. Coloque o CSV em data/processed/dataset_eleicoes.csv ou em data/dataset_eleicoes.csv")
-        sys.exit(1)
-
-    out = os.path.join(os.path.dirname(__file__))
-    train_and_save(dataset, out)
+    train_fact_checker()
