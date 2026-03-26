@@ -18,7 +18,7 @@ def collect_with_factcheckexplorer(terms):
 
     rows = []
     for t in terms:
-        print(f"🔍 buscando via factcheckexplorer: {t}")
+        print(f"buscando via factcheckexplorer: {t}")
         try:
             lib = FactCheckLib(t)
             raw = lib.fetch_data()
@@ -50,7 +50,7 @@ def collect_with_google_api(terms, api_key):
         return rows
 
     for t in terms:
-        print(f"🔍 buscando via Google Fact Check API: {t}")
+        print(f"buscando via Google Fact Check API: {t}")
         q = t
         url = f"https://factchecktools.googleapis.com/v1/claims:search?query={requests.utils.quote(q)}&key={api_key}"
         try:
@@ -106,7 +106,7 @@ def main():
 
     df = pd.DataFrame(rows)
     df.to_csv(out_path, index=False, encoding="utf-8")
-    print(f"✅ Dataset salvo em: {out_path} ({len(df)} registros)")
+    print(f"Dataset salvo em: {out_path} ({len(df)} registros)")
 
 
 if __name__ == "__main__":
