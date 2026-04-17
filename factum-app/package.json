@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Factum",
+    "slug": "factum",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/factum.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "image": "./assets/factum.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#050810"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.factum.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/factum.png",
+        "backgroundColor": "#050810"
+      },
+      "package": "com.factum.app"
+    },
+    "web": {
+      "favicon": "./assets/factum.png"
+    }
+  }
+}
