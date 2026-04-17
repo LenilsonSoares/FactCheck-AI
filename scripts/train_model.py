@@ -22,11 +22,13 @@ MODEL_OUTPUT_DIR = BASE_DIR / "backend" / "app" / "ml_models"
 def normalize_labels(val):
     """Padroniza diferentes vereditos para formato binário (0 ou 1)."""
     if pd.isna(val):
-        return 0
+        return None
     s = str(val).lower().strip()
     if any(term in s for term in ["true", "verdade", "fato", "correto", "confirmado", "sim", "1"]):
         return 1
-    return 0
+    if any(term in s for term in ["false", "falso", "fake", "enganoso", "distorcido", "errado", "fraude", "0"]):
+        return 0
+    return None
 
 
 def get_engine():
@@ -43,7 +45,7 @@ def train():
         print(f"ERRO: Arquivo não localizado em {DATASET_PATH}")
         sys.exit(1)
 
-    df = pd.read_csv(DATASET_PATH)
+    df = pd.read_csv(DATASET_PATH, engine="python", on_bad_lines="skip")
 
     # detectar colunas de texto e rótulo de forma robusta
     text_candidates = ["texto", "text", "claim", "afirmacao", "body", "content"]
@@ -62,11 +64,18 @@ def train():
 
     X = df[text_col].fillna("")
     y = df[label_col].apply(normalize_labels)
+    valid_mask = y.notna()
+    X = X[valid_mask]
+    y = y[valid_mask].astype(int)
+
+    if y.nunique() < 2:
+        print("ERRO: dataset filtrado possui apenas uma classe valida. Revise o dataset/normalizacao.")
+        sys.exit(1)
 
     print(f"Distribuição de classes: {y.value_counts().to_dict()}")
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y if y.nunique() > 1 else None
+        X, y, test_size=0.2, random_state=42, stratify=y
     )
 
     # --- UPSAMPLING SIMPLES: duplicar exemplos da classe minoritária no treino ---

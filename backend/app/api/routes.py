@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+import os
 
 from app.api.dependencies import get_verify_claim_use_case
 from app.api.schemas import ClaimRequest
@@ -23,9 +24,19 @@ def root() -> dict:
 def health_check() -> dict:
     try:
         ModelLoader.get_instance()
-        return {"status": "online", "model_loaded": True, "version": "1.1.0"}
+        return {
+            "status": "online",
+            "model_loaded": True,
+            "google_api_key_configured": bool(os.getenv("GOOGLE_API_KEY")),
+            "version": "1.1.0",
+        }
     except Exception as exc:
-        return {"status": "degraded", "model_loaded": False, "error": str(exc)}
+        return {
+            "status": "degraded",
+            "model_loaded": False,
+            "google_api_key_configured": bool(os.getenv("GOOGLE_API_KEY")),
+            "error": str(exc),
+        }
 
 
 @router.post("/verify", response_model=VerificationResult)

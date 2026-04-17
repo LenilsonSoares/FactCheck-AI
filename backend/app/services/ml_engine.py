@@ -71,6 +71,8 @@ class ModelLoader:
 
     def predict(self, text: str) -> Dict:
         try:
+            probs = None
+            margin = 0.0
             if getattr(self, "pipeline", None) is not None:
                 # pipeline supports single-call predict/predict_proba
                 pred = int(self.pipeline.predict([text])[0])
@@ -79,6 +81,8 @@ class ModelLoader:
                     try:
                         probs = self.pipeline.predict_proba([text])[0]
                         confidence = float(max(probs))
+                        if len(probs) >= 2:
+                            margin = float(abs(probs[1] - probs[0]))
                     except Exception:
                         confidence = 0.0
             else:
@@ -90,11 +94,24 @@ class ModelLoader:
                     try:
                         probs = self.model.predict_proba(vec)[0]
                         confidence = float(max(probs))
+                        if len(probs) >= 2:
+                            margin = float(abs(probs[1] - probs[0]))
                     except Exception:
                         confidence = 0.0
 
+            # Conservative fallback: if the model is uncertain, avoid hard true/false verdicts.
+            is_uncertain = confidence < 0.9 or margin < 0.35
             rating = "Verdadeiro" if pred == 1 else "Falso"
-            return {"label": pred, "rating": rating, "confidence": confidence}
+            if is_uncertain:
+                rating = "Inconclusive"
+
+            return {
+                "label": pred,
+                "rating": rating,
+                "confidence": confidence,
+                "is_uncertain": is_uncertain,
+                "margin": margin,
+            }
         except Exception as e:
             # on error, raise to caller to fallback
             raise RuntimeError(f"Erro na predição do modelo: {e}")

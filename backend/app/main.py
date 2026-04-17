@@ -1,7 +1,14 @@
 import uvicorn
+from pathlib import Path
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router as api_router
+
+
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+load_dotenv(BACKEND_DIR / ".env")
 
 # 1. Inicialização Sênior (Metadados ajudam na documentação automática)
 app = FastAPI(

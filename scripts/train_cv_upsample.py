@@ -23,11 +23,13 @@ SAVE_PATH = MODEL_OUTPUT_DIR / "modelo.pkl"
 
 def normalize_labels(val):
     if pd.isna(val):
-        return 0
+        return None
     s = str(val).lower().strip()
     if any(term in s for term in ["true", "verdade", "fato", "correto", "confirmado", "sim", "1"]):
         return 1
-    return 0
+    if any(term in s for term in ["false", "falso", "fake", "enganoso", "distorcido", "errado", "fraude", "0"]):
+        return 0
+    return None
 
 
 def get_engine():
@@ -60,7 +62,7 @@ def run_cv(n_splits=5):
         print(f"Erro: Arquivo não encontrado: {DATASET_PATH}")
         sys.exit(1)
 
-    df = pd.read_csv(DATASET_PATH)
+    df = pd.read_csv(DATASET_PATH, engine="python", on_bad_lines="skip")
     # detectar colunas
     text_candidates = ["texto", "text", "claim", "afirmacao", "body", "content"]
     label_candidates = ["veredito", "verdict", "label", "rating"]
@@ -73,7 +75,14 @@ def run_cv(n_splits=5):
         label_col = next((c for c in df.columns if c != text_col), df.columns[1] if len(df.columns) > 1 else df.columns[0])
 
     X = df[text_col].fillna("").values
-    y = df[label_col].apply(normalize_labels).values
+    y_series = df[label_col].apply(normalize_labels)
+    valid_mask = y_series.notna()
+    X = X[valid_mask]
+    y = y_series[valid_mask].astype(int).values
+
+    if len(set(y)) < 2:
+        print("Erro: dataset filtrado possui apenas uma classe valida. Revise dados e normalizacao.")
+        sys.exit(1)
 
     print(f"Distribuição total: {pd.Series(y).value_counts().to_dict()}")
 
