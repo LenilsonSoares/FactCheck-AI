@@ -14,6 +14,7 @@ import {
   Image,
   Alert,
   Share,
+  Platform,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,6 +23,24 @@ import { Feather, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
+const DEFAULT_API_BASE_URL = Platform.OS === 'web'
+  ? 'http://127.0.0.1:8000'
+  : 'http://192.168.1.100:8000';
+
+const normalizeApiConfig = (config = {}) => {
+  const normalized = {
+    baseUrl: String(config.baseUrl || DEFAULT_API_BASE_URL),
+    timeout: Number(config.timeout || 30000),
+  };
+
+  // On web we force localhost backend to avoid stale mobile LAN IP in AsyncStorage.
+  if (Platform.OS === 'web') {
+    normalized.baseUrl = DEFAULT_API_BASE_URL;
+  }
+
+  return normalized;
+};
+
 const App = () => {
   const [showSplash, setShowSplash] = useState(true);
   const [inputText, setInputText] = useState('');
@@ -29,13 +48,15 @@ const App = () => {
   const [result, setResult] = useState(null);
   const [recentItems, setRecentItems] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState(true);
+  const [backendOnline, setBackendOnline] = useState(false);
+  const [lastError, setLastError] = useState('');
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const loadingWidth = useRef(new Animated.Value(0)).current;
   const resultAnim = useRef(new Animated.Value(0)).current;
 
   const [apiConfig, setApiConfig] = useState({
-    baseUrl: 'http://192.168.1.100:5000', // ALTERE PARA O IP DO SEU BACKEND
+    baseUrl: DEFAULT_API_BASE_URL,
     timeout: 30000,
   });
 
@@ -74,24 +95,51 @@ const App = () => {
       const savedConfig = await AsyncStorage.getItem('api_config');
       if (savedConfig) {
         const config = JSON.parse(savedConfig);
-        setApiConfig(config);
+        setApiConfig(normalizeApiConfig(config));
+      } else {
+        setApiConfig((prev) => normalizeApiConfig(prev));
       }
     } catch (error) {
       console.error('Erro ao carregar config:', error);
     }
   };
 
-  const checkConnectivity = async () => {
+  const fetchWithTimeout = async (url, options = {}, timeoutMs = 10000) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
     try {
-      const response = await fetch(`${apiConfig.baseUrl}/health`, {
-        method: 'GET',
-        timeout: 5000,
+      return await fetch(url, {
+        ...options,
+        signal: controller.signal,
       });
-      if (!response.ok) throw new Error('Backend offline');
-    } catch (error) {
-      console.log('Backend não disponível');
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
+
+  const checkConnectivity = async () => {
+    if (!connectionStatus) {
+      setBackendOnline(false);
+      return;
+    }
+
+    try {
+      const response = await fetchWithTimeout(`${apiConfig.baseUrl}/health`, {
+        method: 'GET',
+      }, 5000);
+      if (!response.ok) throw new Error('Backend offline');
+      const health = await response.json();
+      setBackendOnline(Boolean(health?.status === 'online' || health?.status === 'degraded'));
+      setLastError('');
+    } catch (error) {
+      setBackendOnline(false);
+      setLastError('Backend indisponível no momento.');
+    }
+  };
+
+  useEffect(() => {
+    checkConnectivity();
+  }, [apiConfig.baseUrl, connectionStatus]);
 
   const loadRecentVerifications = async () => {
     try {
@@ -129,6 +177,47 @@ const App = () => {
     }
   };
 
+  const normalizeRating = (rating) => {
+    const normalized = String(rating || '').trim().toUpperCase();
+    if (!normalized) return 'INCONCLUSIVO';
+
+    if (
+      normalized.includes('FALSE') ||
+      normalized.includes('FALSO') ||
+      normalized.includes('FAKE') ||
+      normalized.includes('FALSA')
+    ) {
+      return 'FALSO';
+    }
+
+    if (
+      normalized.includes('MISLEADING') ||
+      normalized.includes('IMPRECISO') ||
+      normalized.includes('ENGANOSO') ||
+      normalized.includes('DISTORCIDO')
+    ) {
+      return 'IMPRECISO';
+    }
+
+    if (
+      normalized.includes('TRUE') ||
+      normalized.includes('VERDADEIRO') ||
+      normalized.includes('VERDADE') ||
+      normalized.includes('REAL')
+    ) {
+      return 'VERDADEIRO';
+    }
+
+    return 'INCONCLUSIVO';
+  };
+
+  const normalizeConfidence = (confidenceValue) => {
+    const numeric = Number(confidenceValue ?? 0);
+    if (Number.isNaN(numeric)) return 0;
+    const percentage = numeric <= 1 ? numeric * 100 : numeric;
+    return Math.max(0, Math.min(100, Math.round(percentage)));
+  };
+
   const handleVerify = async () => {
     if (!inputText.trim()) {
       Alert.alert('Atenção', 'Por favor, digite uma afirmação para verificar');
@@ -140,15 +229,21 @@ const App = () => {
       return;
     }
 
+    if (!backendOnline) {
+      Alert.alert(
+        'Backend offline',
+        `Não foi possível alcançar o backend em:\n${apiConfig.baseUrl}\n\nVerifique se o servidor está rodando.`
+      );
+      return;
+    }
+
     setIsVerifying(true);
     setResult(null);
+    setLastError('');
     resultAnim.setValue(0);
 
     try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), apiConfig.timeout);
-
-      const response = await fetch(`${apiConfig.baseUrl}/verify`, {
+      const response = await fetchWithTimeout(`${apiConfig.baseUrl}/verify`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -156,30 +251,35 @@ const App = () => {
         },
         body: JSON.stringify({
           text: inputText.trim(),
-          timestamp: new Date().toISOString(),
         }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
+      }, apiConfig.timeout);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Erro na comunicação com o servidor');
+        let errorMessage = 'Erro na comunicação com o servidor';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData?.detail || errorData?.message || errorMessage;
+        } catch (_) {
+          // mantém mensagem padrão
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      const normalizedStatus = normalizeRating(data.rating);
+      const normalizedConfidence = normalizeConfidence(data.confidence);
+      const sourceType = data.source === 'Google Fact Check' ? 'api' : 'ml';
       
       const verificationResult = {
         id: Date.now().toString(),
         text: inputText.trim(),
-        status: data.status,
-        color: getStatusColor(data.status),
-        bg: getStatusBgColor(data.status),
-        confidence: data.confidence,
-        details: data.details,
-        sources: data.sources || [],
-        source_type: data.source_type,
+        status: normalizedStatus,
+        color: getStatusColor(normalizedStatus),
+        bg: getStatusBgColor(normalizedStatus),
+        confidence: normalizedConfidence,
+        details: `Classificação retornada por ${data.source || 'modelo interno'}.`,
+        source_type: sourceType,
+        raw_rating: data.rating,
         timestamp: new Date().toISOString(),
       };
 
@@ -195,6 +295,7 @@ const App = () => {
       
     } catch (error) {
       console.error('Erro na verificação:', error);
+      setLastError(error.message || 'Falha ao verificar afirmação.');
       
       if (error.name === 'AbortError') {
         Alert.alert('Timeout', 'O servidor demorou muito para responder. Tente novamente.');
@@ -206,6 +307,7 @@ const App = () => {
       }
     } finally {
       setIsVerifying(false);
+      checkConnectivity();
     }
   };
 
@@ -214,6 +316,7 @@ const App = () => {
       case 'VERDADEIRO': return '#22c55e';
       case 'FALSO': return '#ef4444';
       case 'IMPRECISO': return '#eab308';
+      case 'INCONCLUSIVO': return '#64748b';
       default: return '#94a3b8';
     }
   };
@@ -223,6 +326,7 @@ const App = () => {
       case 'VERDADEIRO': return 'rgba(34,197,94,0.15)';
       case 'FALSO': return 'rgba(239,68,68,0.15)';
       case 'IMPRECISO': return 'rgba(234,179,8,0.15)';
+      case 'INCONCLUSIVO': return 'rgba(100,116,139,0.2)';
       default: return 'rgba(148,163,184,0.15)';
     }
   };
@@ -260,6 +364,8 @@ const App = () => {
         return <Feather name="x-circle" size={14} color="#ef4444" />;
       case 'IMPRECISO': 
         return <Feather name="alert-triangle" size={14} color="#eab308" />;
+      case 'INCONCLUSIVO':
+        return <Feather name="help-circle" size={14} color="#64748b" />;
       default: 
         return <Feather name="help-circle" size={14} color="#94a3b8" />;
     }
@@ -323,6 +429,12 @@ const App = () => {
               <Text style={styles.offlineText}>Offline</Text>
             </View>
           )}
+          {connectionStatus && !backendOnline && (
+            <View style={styles.backendBadge}>
+              <Feather name="alert-circle" size={14} color="#f59e0b" />
+              <Text style={styles.backendText}>Backend indisponível</Text>
+            </View>
+          )}
         </View>
         
         <Text style={styles.tagline}>A verdade por trás da informação.</Text>
@@ -336,6 +448,13 @@ const App = () => {
             <Text style={styles.cardSubtitle}>
               Digite uma afirmação, notícia ou cole um link para analisarmos com IA.
             </Text>
+
+            {lastError ? (
+              <View style={styles.errorBanner}>
+                <Feather name="alert-triangle" size={14} color="#fca5a5" />
+                <Text style={styles.errorBannerText}>{lastError}</Text>
+              </View>
+            ) : null}
             
             <TextInput
               style={styles.textInput}
@@ -585,6 +704,23 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
   },
+  backendBadge: {
+    position: 'absolute',
+    right: 20,
+    top: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(245,158,11,0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 4,
+  },
+  backendText: {
+    color: '#f59e0b',
+    fontSize: 10,
+    fontWeight: '600',
+  },
   tagline: {
     textAlign: 'center',
     color: '#6b7b9b',
@@ -614,6 +750,23 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 18,
     lineHeight: 19,
+  },
+  errorBanner: {
+    backgroundColor: 'rgba(239,68,68,0.15)',
+    borderWidth: 1,
+    borderColor: '#7f1d1d',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  errorBannerText: {
+    color: '#fecaca',
+    fontSize: 12,
+    flex: 1,
   },
   textInput: {
     backgroundColor: '#0a0e1a',
