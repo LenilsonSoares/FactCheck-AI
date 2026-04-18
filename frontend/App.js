@@ -24,6 +24,10 @@ import { Feather, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
+const VERIFICATION_HISTORY_KEY = 'verification_history';
+const VERIFICATION_HISTORY_VERSION_KEY = 'verification_history_version';
+const VERIFICATION_HISTORY_VERSION = '2026-04-18-rule-fix';
+
 const ENV_API_BASE_URL = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
 const DEFAULT_API_BASE_URL = ENV_API_BASE_URL || (
   Platform.OS === 'web' ? 'http://127.0.0.1:8001' : 'http://10.0.2.2:8001'
@@ -205,7 +209,15 @@ const App = () => {
 
   const loadRecentVerifications = async () => {
     try {
-      const saved = await AsyncStorage.getItem('verification_history');
+      const savedVersion = await AsyncStorage.getItem(VERIFICATION_HISTORY_VERSION_KEY);
+      if (savedVersion !== VERIFICATION_HISTORY_VERSION) {
+        await AsyncStorage.removeItem(VERIFICATION_HISTORY_KEY);
+        await AsyncStorage.setItem(VERIFICATION_HISTORY_VERSION_KEY, VERIFICATION_HISTORY_VERSION);
+        setRecentItems([]);
+        return;
+      }
+
+      const saved = await AsyncStorage.getItem(VERIFICATION_HISTORY_KEY);
       if (saved) {
         const history = JSON.parse(saved);
         setRecentItems(history.slice(0, 5));
@@ -217,11 +229,11 @@ const App = () => {
 
   const saveToHistory = async (verification) => {
     try {
-      const saved = await AsyncStorage.getItem('verification_history');
+      const saved = await AsyncStorage.getItem(VERIFICATION_HISTORY_KEY);
       let history = saved ? JSON.parse(saved) : [];
       history = [verification, ...history];
       if (history.length > 50) history = history.slice(0, 50);
-      await AsyncStorage.setItem('verification_history', JSON.stringify(history));
+      await AsyncStorage.setItem(VERIFICATION_HISTORY_KEY, JSON.stringify(history));
       setRecentItems(history.slice(0, 5));
     } catch (error) {
       console.error('Erro ao salvar histórico:', error);

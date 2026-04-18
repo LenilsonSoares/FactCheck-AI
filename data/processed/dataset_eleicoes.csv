@@ -721,3 +721,42 @@ O segundo turno das eleicoes no Brasil ocorre em outubro.,TSE,https://www.tse.ju
 Lula e presidente em 2025?,Internal AI Model,,Falso,,,[],0.8591422912167034
 Lula e presidente em 2025?,Internal AI Model,,Falso,,,[],0.8591422912167034
 Lula e presidente em 2025?,Internal AI Model,,Falso,,,[],0.8591422912167034
+Lula e presidente em 2025?,Internal AI Model,,Inconclusive,,,[],0.8840476658979214
+bolsonaro e presidente em 2025?,Internal AI Model,,Inconclusive,,,[],0.8843955561165909
+bolsonaro e presidente ?,Internal AI Model,,Inconclusive,,,[],0.8331271551967938
+Bolsonaro e presidente?,Rule-based Context,,Falso,,,[],0.98
+Bolsonaro e presidente?,Rule-based Context,,Falso,,,[],0.98
+Bolsonaro e presidente em 2025?,Rule-based Context,,Falso,,,[],0.98
+Lula e presidente em 2025?,Rule-based Context,,Verdadeiro,,,[],0.98
+Bolsonaro e presidente?,Internal AI Model,,Inconclusive,,,[],0.8331271551967938
+Bolsonaro e presidente?,Internal AI Model,,Inconclusive,,,[],0.8331271551967938
+Lula e presidente em 2025?,Internal AI Model,,Inconclusive,,,[],0.8840476658979214
+Lula e presidente em 2025?,Internal AI Model,,Inconclusive,,,[],0.8840476658979214
+Lula e presidente em 2025?,Rule-based Context,,Verdadeiro,,,[],0.98
+bolsonaro e presidente em 2025?,Rule-based Context,,Falso,,,[],0.98
+voto no brasil e obrigatorio?,Internal AI Model,,Verdadeiro,,,[],0.8276186896153389
+voto no brasil nao e obrigatorio?,Internal AI Model,,Verdadeiro,,,[],0.8276186896153389
+Voto no Brasil nao e obrigatorio?,Rule-based Context,,Falso,,,[],0.98
+Voto no Brasil nao e obrigatorio?,Rule-based Context,,Falso,,,[],0.98
+Voto no Brasil e obrigatorio?,Rule-based Context,,Verdadeiro,,,[],0.98
+voto no brasil nao e obrigatorio?,Rule-based Context,,Falso,,,[],0.98
+voto no brasil nao e obrigatorio?,Rule-based Context,,Falso,,,[],0.98
+voto no brasil e obrigatorio?,Rule-based Context,,Verdadeiro,,,[],0.98
+lula foi presidente em 2022?,Rule-based Context,,Falso,,,[],0.98
+lula foi presidente em 2024?,Rule-based Context,,Verdadeiro,,,[],0.98
+teve fraude nas urnas?,Internal AI Model,,Falso,,,[],0.9314992257424065
+nao teve fraude nas urnas?,Internal AI Model,,Falso,,,[],0.9314992257424065
+nao teve fraude nas urnas?,Internal AI Model,,Falso,,,[],0.9314992257424065
+Bolsonaro é presidente?,Rule-based Context,,Falso,,,[],0.98
+Lula é presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
+O voto brasileiro não é obrigatório?,Rule-based Context,,Falso,,,[],0.98
+O voto brasileiro  é obrigatório?,Rule-based Context,,Verdadeiro,,,[],0.98
+O voto brasileiro  é obrigatório?,Rule-based Context,,Verdadeiro,,,[],0.98
+Voto no Brasil e obrigatorio?,Rule-based Context,,Verdadeiro,,,[],0.98
+bolsonaro vai ser candidato ?,Internal AI Model,,Falso,,,[],0.8989559680366577
+Lula vais er candidato?,Internal AI Model,,Falso,,,[],0.8789574883119807
+Lula vais ser candidato?,Internal AI Model,,Falso,,,[],0.862659465810424
+Lula vai ser candidato?,Internal AI Model,,Falso,,,[],0.8918445131165664
+Lula é presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
+Lula vai candidatar presidente em 2026?,Rule-based Context,,Verdadeiro,,,[],0.98
+Bolsonaro vai candidatar presidente em 2026?,Rule-based Context,,Falso,,,[],0.98

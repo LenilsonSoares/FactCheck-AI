@@ -91,3 +91,71 @@ def test_use_case_returns_inconclusive_on_classifier_error():
     assert result.rating == "Inconclusive"
     assert result.confidence == 0.5
     assert len(repo.rows) == 1
+
+
+def test_use_case_resolves_lula_president_2025_without_classifier_call():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Falso", "confidence": 0.2}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Lula e presidente em 2025?")
+
+    assert result.source == "Internal AI Model"
+    assert result.rating == "Verdadeiro"
+    assert result.confidence == 0.98
+    assert len(repo.rows) == 1
+    assert repo.rows[0]["source"] == "Rule-based Context"
+
+
+def test_use_case_resolves_bolsonaro_president_2025_as_false():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Verdadeiro", "confidence": 0.9}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Bolsonaro e presidente em 2025?")
+
+    assert result.source == "Internal AI Model"
+    assert result.rating == "Falso"
+    assert result.confidence == 0.98
+    assert len(repo.rows) == 1
+    assert repo.rows[0]["source"] == "Rule-based Context"
+
+
+def test_use_case_resolves_vote_not_mandatory_claim_as_false():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Verdadeiro", "confidence": 0.9}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Voto no Brasil nao e obrigatorio?")
+
+    assert result.source == "Internal AI Model"
+    assert result.rating == "Falso"
+    assert result.confidence == 0.98
+    assert len(repo.rows) == 1
+    assert repo.rows[0]["source"] == "Rule-based Context"
+
+
+def test_use_case_resolves_vote_mandatory_claim_as_true():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Falso", "confidence": 0.2}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Voto no Brasil e obrigatorio?")
+
+    assert result.source == "Internal AI Model"
+    assert result.rating == "Verdadeiro"
+    assert result.confidence == 0.98
+    assert len(repo.rows) == 1
+    assert repo.rows[0]["source"] == "Rule-based Context"

@@ -1,11 +1,32 @@
 import sys
 import shutil
 import json
+import unicodedata
 from pathlib import Path
 
 import pandas as pd
 
-KEYWORDS = ["eleicao", "bolsonaro", "lula", "pt", "campanha", "urna", "voto", "fraude"]
+# Palavras-chave base do contexto eleitoral (requisito do projeto).
+KEYWORDS = ["eleição", "bolsonaro", "lula", "pt", "campanha", "urna", "voto", "fraude"]
+
+
+def _strip_accents(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    return "".join(ch for ch in normalized if not unicodedata.combining(ch))
+
+
+def _expand_keywords(keywords: list[str]) -> list[str]:
+    expanded: list[str] = []
+    seen: set[str] = set()
+
+    for keyword in keywords:
+        for variant in (keyword.strip(), _strip_accents(keyword.strip())):
+            token = variant.lower()
+            if token and token not in seen:
+                seen.add(token)
+                expanded.append(token)
+
+    return expanded
 
 
 def _normalize_verdict(value):
@@ -39,7 +60,7 @@ def build_dataset() -> None:
     all_items = []
     failures = []
 
-    for keyword in KEYWORDS:
+    for keyword in _expand_keywords(KEYWORDS):
         print(f"Coletando verificações para: {keyword}")
         try:
             collector = FactCheckLib(query=keyword, language="pt", num_results=100)
