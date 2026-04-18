@@ -26,7 +26,7 @@ const { width, height } = Dimensions.get('window');
 
 const ENV_API_BASE_URL = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
 const DEFAULT_API_BASE_URL = ENV_API_BASE_URL || (
-  Platform.OS === 'web' ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000'
+  Platform.OS === 'web' ? 'http://127.0.0.1:8001' : 'http://10.0.2.2:8001'
 );
 
 const getExpoLanHost = () => {
@@ -49,10 +49,8 @@ const buildApiCandidates = () => {
   const candidates = [
     DEFAULT_API_BASE_URL,
     ENV_API_BASE_URL,
-    lanHost ? `http://${lanHost}:8000` : '',
     lanHost ? `http://${lanHost}:8001` : '',
     lanHost ? `http://${lanHost}:8002` : '',
-    'http://127.0.0.1:8000',
     'http://127.0.0.1:8001',
     'http://127.0.0.1:8002',
   ].filter(Boolean);

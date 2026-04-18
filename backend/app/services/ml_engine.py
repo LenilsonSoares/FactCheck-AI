@@ -19,10 +19,10 @@ class ModelLoader:
         app_dir = os.path.abspath(os.path.join(services_dir, ".."))
         ml_dir = os.path.join(app_dir, "ml_models")
 
-        # Conservative defaults to avoid confidently wrong hard labels.
-        # Values can be tuned via env for demos.
-        self.min_confidence = float(os.getenv("MODEL_MIN_CONFIDENCE", "0.95"))
-        self.min_margin = float(os.getenv("MODEL_MIN_MARGIN", "0.45"))
+        # Defaults balance caution and usability.
+        # Values can still be tuned via env for demos/experiments.
+        self.min_confidence = float(os.getenv("MODEL_MIN_CONFIDENCE", "0.80"))
+        self.min_margin = float(os.getenv("MODEL_MIN_MARGIN", "0.20"))
 
         # candidate files (in order of preference)
         candidates = []

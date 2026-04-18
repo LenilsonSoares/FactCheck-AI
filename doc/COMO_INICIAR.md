@@ -16,7 +16,7 @@ Na raiz do projeto:
 
 Esse comando abre dois terminais automaticamente:
 
-1. Backend em http://127.0.0.1:8000
+1. Backend em http://127.0.0.1:8001
 2. Frontend em http://localhost:8081
 
 Para parar os servicos de uma vez:
@@ -37,12 +37,12 @@ c:/python314/python.exe -m pip install -r requirements.txt
 
 3. Subir a API:
 
-c:/python314/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --reload
+c:/python314/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
 
 4. Testar se esta online:
 
 Abrir no navegador:
-http://127.0.0.1:8000/health
+http://127.0.0.1:8001/health
 
 ## 3. Iniciar o frontend (Expo Web)
 
@@ -59,7 +59,7 @@ npm install
 3. Definir URL do backend para a sessao atual e iniciar web:
 
 PowerShell:
-$env:EXPO_PUBLIC_API_BASE_URL="http://127.0.0.1:8000"; npx expo start --web --port 8081
+$env:EXPO_PUBLIC_API_BASE_URL="http://127.0.0.1:8001"; npx.cmd expo start --web --port 8081
 
 4. Abrir no navegador:
 http://localhost:8081
@@ -77,13 +77,13 @@ c:/python314/python.exe -m pytest -q
 
 ## 6. Erros comuns
 
-1. Porta 8000 em uso:
-   - Fechar processo que esta usando a porta 8000.
+1. Porta 8001 em uso:
+   - Fechar processo que esta usando a porta 8001.
    - Tentar novamente iniciar o backend.
 
 2. Mensagem "Backend indisponivel" no frontend:
-   - Confirmar backend online em http://127.0.0.1:8000/health.
-   - Confirmar frontend apontando para EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8000.
+   - Confirmar backend online em http://127.0.0.1:8001/health.
+   - Confirmar frontend apontando para EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8001.
 
 3. Porta 8081 ocupada:
    - Iniciar frontend em outra porta, por exemplo 8082.

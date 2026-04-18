@@ -93,7 +93,7 @@ def normalize():
 
     # Corrige texto com encoding quebrado em todas as colunas textuais.
     for col in df.columns:
-        if df[col].dtype == object:
+        if pd.api.types.is_string_dtype(df[col]) or df[col].dtype == object:
             df[col] = df[col].apply(_fix_mojibake)
 
     # garantir colunas básicas
