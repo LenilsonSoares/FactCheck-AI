@@ -19,14 +19,47 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import Constants from 'expo-constants';
 import { Feather, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
 const ENV_API_BASE_URL = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
-const DEFAULT_API_BASE_URL = Platform.OS === 'web'
-  ? 'http://127.0.0.1:8000'
-  : (ENV_API_BASE_URL || 'http://10.0.2.2:8000');
+const DEFAULT_API_BASE_URL = ENV_API_BASE_URL || (
+  Platform.OS === 'web' ? 'http://127.0.0.1:8000' : 'http://10.0.2.2:8000'
+);
+
+const getExpoLanHost = () => {
+  const hostUri =
+    Constants?.expoConfig?.hostUri ||
+    Constants?.manifest2?.extra?.expoClient?.hostUri ||
+    '';
+
+  const host = String(hostUri).split(':')[0].trim();
+  if (!host) {
+    return '';
+  }
+
+  const ipv4Regex = /^(\d{1,3}\.){3}\d{1,3}$/;
+  return ipv4Regex.test(host) ? host : '';
+};
+
+const buildApiCandidates = () => {
+  const lanHost = getExpoLanHost();
+  const candidates = [
+    DEFAULT_API_BASE_URL,
+    ENV_API_BASE_URL,
+    lanHost ? `http://${lanHost}:8000` : '',
+    lanHost ? `http://${lanHost}:8001` : '',
+    lanHost ? `http://${lanHost}:8002` : '',
+    'http://127.0.0.1:8000',
+    'http://127.0.0.1:8001',
+    'http://127.0.0.1:8002',
+  ].filter(Boolean);
+
+  // Remove duplicates while keeping order.
+  return Array.from(new Set(candidates));
+};
 
 const normalizeApiConfig = (config = {}) => {
   const normalized = {
@@ -133,6 +166,36 @@ const App = () => {
       setBackendOnline(Boolean(health?.status === 'online' || health?.status === 'degraded'));
       setLastError('');
     } catch (error) {
+      // Auto-discovery fallback for local dev where backend port can change.
+      const candidates = buildApiCandidates().filter((baseUrl) => baseUrl !== apiConfig.baseUrl);
+      for (const candidate of candidates) {
+        try {
+          const fallbackResponse = await fetchWithTimeout(`${candidate}/health`, {
+            method: 'GET',
+          }, 5000);
+          if (!fallbackResponse.ok) {
+            continue;
+          }
+          const health = await fallbackResponse.json();
+          const online = Boolean(health?.status === 'online' || health?.status === 'degraded');
+          if (!online) {
+            continue;
+          }
+
+          const nextConfig = {
+            ...apiConfig,
+            baseUrl: candidate,
+          };
+          setApiConfig(nextConfig);
+          await AsyncStorage.setItem('api_config', JSON.stringify(nextConfig));
+          setBackendOnline(true);
+          setLastError('');
+          return;
+        } catch (_) {
+          // Try next candidate.
+        }
+      }
+
       setBackendOnline(false);
       setLastError('Backend indisponível no momento.');
     }
