@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 import os
+import logging
 
 from app.api.dependencies import get_verify_claim_use_case
 from app.api.schemas import ClaimRequest
@@ -9,6 +10,7 @@ from app.services.ml_engine import ModelLoader
 
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 @router.get("/")
@@ -51,4 +53,5 @@ async def verify_claim(
     try:
         return use_case.execute(statement)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Erro interno ao processar verificação: {exc}")
+        logger.exception("Erro ao processar verificacao", exc_info=exc)
+        raise HTTPException(status_code=500, detail="Erro interno ao processar verificação.")

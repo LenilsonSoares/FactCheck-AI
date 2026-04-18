@@ -6,6 +6,6 @@ joblib
 requests
 google-api-python-client
 python-dotenv
-git+https://github.com/GONZOsint/factcheckexplorer.git
+git+https://github.com/GONZOsint/factcheckexplorer.git@76c6ad44424e2fe14a0281ca3552117bf1e8cc69
 pytest
 httpx

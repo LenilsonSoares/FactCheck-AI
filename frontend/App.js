@@ -23,9 +23,10 @@ import { Feather, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
+const ENV_API_BASE_URL = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
 const DEFAULT_API_BASE_URL = Platform.OS === 'web'
   ? 'http://127.0.0.1:8000'
-  : 'http://192.168.1.100:8000';
+  : (ENV_API_BASE_URL || 'http://10.0.2.2:8000');
 
 const normalizeApiConfig = (config = {}) => {
   const normalized = {
@@ -446,7 +447,7 @@ const App = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Verifique uma informação</Text>
             <Text style={styles.cardSubtitle}>
-              Digite uma afirmação, notícia ou cole um link para analisarmos com IA.
+              Digite uma afirmação ou notícia para analisarmos com IA.
             </Text>
 
             {lastError ? (
@@ -560,13 +561,6 @@ const App = () => {
           </View>
 
           <View style={styles.quickActions}>
-            <TouchableOpacity 
-              style={styles.actionButton}
-              onPress={() => Alert.alert('Colar Link', 'Função disponível em breve')}
-            >
-              <Feather name="link" size={16} color="#b9c3dd" />
-              <Text style={styles.actionButtonText}>Colar link</Text>
-            </TouchableOpacity>
             <TouchableOpacity 
               style={styles.actionButton}
               onPress={showExamples}

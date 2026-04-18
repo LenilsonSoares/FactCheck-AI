@@ -154,8 +154,14 @@ Saida do modelo:
 
 - pip install -r backend/requirements.txt
 
-1. Configurar variavel GOOGLE_API_KEY (opcional para fluxo com API externa).
-2. Iniciar servidor:
+1. Configurar variaveis de ambiente no arquivo `backend/.env`:
+
+- Base recomendada: copiar de `backend/.env.example` para `backend/.env`.
+
+- `GOOGLE_API_KEY` (opcional para fluxo com API externa).
+- `CORS_ALLOW_ORIGINS` (opcional, lista separada por virgula com origens permitidas; ex: `http://localhost:19006,http://127.0.0.1:19006`).
+
+1. Iniciar servidor:
 
 - uvicorn app.main:app --reload --app-dir backend
 
@@ -168,8 +174,13 @@ Endpoints:
 
 1. Entrar na pasta frontend.
 2. Instalar dependencias do projeto mobile/web.
-3. Configurar URL do backend.
-4. Executar aplicacao no emulador/dispositivo.
+3. Configurar URL do backend via variavel de ambiente Expo:
+
+- Base recomendada: copiar de `frontend/.env.example` para `frontend/.env`.
+
+- `EXPO_PUBLIC_API_BASE_URL` (recomendado para Android fisico/emulador e iOS).
+
+1. Executar aplicacao no emulador/dispositivo.
 
 ## Checklist para Entrega
 
