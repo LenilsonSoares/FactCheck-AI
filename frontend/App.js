@@ -27,10 +27,14 @@ const { width, height } = Dimensions.get('window');
 const VERIFICATION_HISTORY_KEY = 'verification_history';
 const VERIFICATION_HISTORY_VERSION_KEY = 'verification_history_version';
 const VERIFICATION_HISTORY_VERSION = '2026-04-18-rule-fix';
+const API_CONFIG_KEY = 'api_config';
+const API_CONFIG_VERSION_KEY = 'api_config_version';
+const API_CONFIG_VERSION = '2026-04-18-env-priority';
+const API_DEFAULT_PORT = '8002';
 
 const ENV_API_BASE_URL = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
 const DEFAULT_API_BASE_URL = ENV_API_BASE_URL || (
-  Platform.OS === 'web' ? 'http://127.0.0.1:8001' : 'http://10.0.2.2:8001'
+  Platform.OS === 'web' ? `http://127.0.0.1:${API_DEFAULT_PORT}` : `http://10.0.2.2:${API_DEFAULT_PORT}`
 );
 
 const getExpoLanHost = () => {
@@ -53,10 +57,9 @@ const buildApiCandidates = () => {
   const candidates = [
     DEFAULT_API_BASE_URL,
     ENV_API_BASE_URL,
-    lanHost ? `http://${lanHost}:8001` : '',
-    lanHost ? `http://${lanHost}:8002` : '',
-    'http://127.0.0.1:8001',
-    'http://127.0.0.1:8002',
+    lanHost ? `http://${lanHost}:${API_DEFAULT_PORT}` : '',
+    `http://127.0.0.1:${API_DEFAULT_PORT}`,
+    `http://localhost:${API_DEFAULT_PORT}`,
   ].filter(Boolean);
 
   // Remove duplicates while keeping order.
@@ -128,7 +131,25 @@ const App = () => {
 
   const loadConfig = async () => {
     try {
-      const savedConfig = await AsyncStorage.getItem('api_config');
+      // Em mobile, sempre prioriza a URL atual do ambiente para evitar cache antigo.
+      if (ENV_API_BASE_URL) {
+        const forcedConfig = normalizeApiConfig({
+          baseUrl: ENV_API_BASE_URL,
+          timeout: 30000,
+        });
+        setApiConfig(forcedConfig);
+        await AsyncStorage.setItem(API_CONFIG_KEY, JSON.stringify(forcedConfig));
+        await AsyncStorage.setItem(API_CONFIG_VERSION_KEY, API_CONFIG_VERSION);
+        return;
+      }
+
+      const savedVersion = await AsyncStorage.getItem(API_CONFIG_VERSION_KEY);
+      if (savedVersion !== API_CONFIG_VERSION) {
+        await AsyncStorage.removeItem(API_CONFIG_KEY);
+        await AsyncStorage.setItem(API_CONFIG_VERSION_KEY, API_CONFIG_VERSION);
+      }
+
+      const savedConfig = await AsyncStorage.getItem(API_CONFIG_KEY);
       if (savedConfig) {
         const config = JSON.parse(savedConfig);
         setApiConfig(normalizeApiConfig(config));
@@ -189,7 +210,7 @@ const App = () => {
             baseUrl: candidate,
           };
           setApiConfig(nextConfig);
-          await AsyncStorage.setItem('api_config', JSON.stringify(nextConfig));
+          await AsyncStorage.setItem(API_CONFIG_KEY, JSON.stringify(nextConfig));
           setBackendOnline(true);
           setLastError('');
           return;
