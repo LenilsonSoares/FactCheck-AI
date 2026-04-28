@@ -1,5 +1,6 @@
 import logging
 import re
+import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -61,7 +62,7 @@ class VerifyClaimUseCase:
             confidence = float(prediction.get("confidence", 0.0))
         except Exception as exc:
             logger.warning("Falha na inferencia do modelo local: %s", exc)
-            rating = "Inconclusive"
+            rating = "Inconclusivo"
             confidence = 0.5
 
         self._safe_store(
@@ -95,12 +96,12 @@ class VerifyClaimUseCase:
         return source, rating, text, source_url
 
     def _resolve_presidency_fact(self, statement: str) -> Optional[tuple[str, float]]:
-        text = (statement or "").strip().lower()
+        text = self._normalize_text(statement)
         if not text:
             return None
 
-        # Regra específica para reduzir falsos negativos em perguntas factuais de presidência.
-        if "presidente" not in text:
+        # Regra pequena para perguntas factuais comuns de presidencia.
+        if "president" not in text:
             return None
 
         person = None
@@ -121,23 +122,35 @@ class VerifyClaimUseCase:
             "bolsonaro": [(2019, 2022)],
         }
         is_true = any(start <= target_year <= end for start, end in mandates[person])
+        if self._has_negation(text):
+            is_true = not is_true
 
         rating = "Verdadeiro" if is_true else "Falso"
         confidence = 0.98
         return rating, confidence
 
     def _resolve_brazil_vote_obligation_fact(self, statement: str) -> Optional[tuple[str, float]]:
-        text = (statement or "").strip().lower()
+        text = self._normalize_text(statement)
         if not text:
             return None
 
         if "voto" not in text or "obrigat" not in text or "brasil" not in text:
             return None
 
-        has_negation = bool(re.search(r"\b(nao|não)\b", text))
-        rating = "Falso" if has_negation else "Verdadeiro"
+        is_true = not self._has_negation(text)
+        rating = "Verdadeiro" if is_true else "Falso"
         confidence = 0.98
         return rating, confidence
+
+    def _normalize_text(self, statement: str) -> str:
+        text = (statement or "").strip().lower()
+        text = unicodedata.normalize("NFKD", text)
+        text = "".join(ch for ch in text if not unicodedata.combining(ch))
+        text = re.sub(r"\s+", " ", text)
+        return text
+
+    def _has_negation(self, text: str) -> bool:
+        return bool(re.search(r"\b(nao|nunca|jamais)\b", text))
 
     def _safe_store(self, *, text: str, source: str, rating: Optional[str], confidence: float, source_url: str) -> None:
         try:

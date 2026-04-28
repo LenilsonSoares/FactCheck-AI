@@ -105,11 +105,11 @@ class ModelLoader:
                         confidence = 0.0
 
             # Conservative rule: if either confidence or separation is weak,
-            # return Inconclusive instead of forcing true/false.
+            # return Inconclusivo instead of forcing true/false.
             is_uncertain = confidence < self.min_confidence or margin < self.min_margin
             rating = "Verdadeiro" if pred == 1 else "Falso"
             if is_uncertain:
-                rating = "Inconclusive"
+                rating = "Inconclusivo"
 
             return {
                 "label": pred,

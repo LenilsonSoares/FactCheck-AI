@@ -1,4 +1,5 @@
-import os
+from pathlib import Path
+
 import pandas as pd
 
 try:
@@ -6,9 +7,20 @@ try:
 except Exception:
     ftfy_fix_text = None
 
-SRC = os.path.join('data', 'raw', 'eleições.csv')
-DST_DIR = os.path.join('data', 'processed')
-DST = os.path.join(DST_DIR, 'dataset_eleicoes.csv')
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+RAW_DIR = BASE_DIR / "data" / "raw"
+DST_DIR = BASE_DIR / "data" / "processed"
+DST = DST_DIR / "dataset_eleicoes.csv"
+
+EXPECTED_COLUMNS = ["texto", "fonte", "source_url", "veredito", "data", "image_url", "tags"]
+
+
+def _find_source_file() -> Path:
+    candidates = sorted(RAW_DIR.glob("elei*.csv"))
+    if candidates:
+        return candidates[0]
+    raise FileNotFoundError(f"Nenhum CSV bruto encontrado em {RAW_DIR}")
 
 
 def _fix_mojibake(value):
@@ -24,187 +36,192 @@ def _fix_mojibake(value):
             pass
 
     def score(txt: str) -> int:
-        # Quanto menor, melhor (menos sinais de corrupção).
-        return txt.count("Ã") + txt.count("Â") + txt.count("�")
+        return txt.count("Ãƒ") + txt.count("Ã‚") + txt.count("ï¿½")
 
     candidates = [value]
-
     for enc in ("latin-1", "cp1252"):
         try:
             candidates.append(value.encode(enc).decode("utf-8"))
         except Exception:
             pass
 
-    for enc in ("latin-1", "cp1252"):
-        try:
-            candidates.append(value.encode(enc).decode("utf-8").encode(enc).decode("utf-8"))
-        except Exception:
-            pass
-
     manual_replacements = {
-        "Ã¡": "á", "Ãà": "à", "Ãâ": "â", "Ãã": "ã", "Ãä": "ä",
-        "ÃÁ": "Á", "ÃÀ": "À", "ÃÂ": "Â", "ÃÃ": "Ã", "ÃÄ": "Ä",
-        "Ã©": "é", "Ãê": "ê", "ÃÉ": "É", "ÃÊ": "Ê",
-        "Ãí": "í", "ÃÍ": "Í",
-        "Ã³": "ó", "Ãô": "ô", "Ãõ": "õ", "ÃÓ": "Ó", "ÃÔ": "Ô", "ÃÕ": "Õ",
-        "Ãº": "ú", "ÃÚ": "Ú",
-        "Ã§": "ç", "Ã‡": "Ç",
-        "Âº": "º", "Âª": "ª",
-        "â€œ": '"', "â€": '"', "â€˜": "'", "â€™": "'", "â€“": "-", "â€”": "-",
+        "ÃƒÂ¡": "á", "ÃƒÃ ": "à", "ÃƒÃ¢": "â", "ÃƒÃ£": "ã",
+        "ÃƒÂ©": "é", "ÃƒÃª": "ê",
+        "ÃƒÃ­": "í",
+        "ÃƒÂ³": "ó", "ÃƒÃ´": "ô", "ÃƒÃµ": "õ",
+        "ÃƒÂº": "ú",
+        "ÃƒÂ§": "ç",
+        "Ã¢â‚¬Å“": '"', "Ã¢â‚¬": '"', "Ã¢â‚¬Ëœ": "'", "Ã¢â‚¬â„¢": "'",
+        "Ã¢â‚¬â€œ": "-", "Ã¢â‚¬â€": "-",
     }
     repaired = value
     for old, new in manual_replacements.items():
         repaired = repaired.replace(old, new)
     candidates.append(repaired)
 
-    best = min(candidates, key=score)
-    return best.strip()
+    return min(candidates, key=score).strip()
 
 
-def normalize():
-    os.makedirs(DST_DIR, exist_ok=True)
-    if not os.path.exists(SRC):
-        print(f"Arquivo de origem não encontrado: {SRC}")
-        return
+def _ground_truth_rows() -> list[dict[str, str]]:
+    tse = "https://www.tse.jus.br"
+    planalto = "https://www.planalto.gov.br/ccivil_03/constituicao/constituicao.htm"
+    rows = [
+        ("O Tribunal Superior Eleitoral organiza as eleicoes no Brasil.", "TSE", tse),
+        ("A Justica Eleitoral brasileira e responsavel pela administracao das eleicoes.", "TSE", tse),
+        ("O voto no Brasil e secreto.", "Constituicao Federal", planalto),
+        ("O voto e obrigatorio para brasileiros alfabetizados entre 18 e 70 anos.", "Constituicao Federal", planalto),
+        ("O voto e facultativo para jovens de 16 e 17 anos.", "Constituicao Federal", planalto),
+        ("O voto e facultativo para pessoas com mais de 70 anos.", "Constituicao Federal", planalto),
+        ("O voto e facultativo para pessoas analfabetas.", "Constituicao Federal", planalto),
+        ("As urnas eletronicas sao usadas no Brasil desde 1996.", "TSE", tse),
+        ("O boletim de urna e emitido ao fim da votacao na secao eleitoral.", "TSE", tse),
+        ("O TSE divulga resultados oficiais das eleicoes brasileiras.", "TSE", tse),
+        ("A eleicao presidencial brasileira ocorre a cada quatro anos.", "Constituicao Federal", planalto),
+        ("O mandato presidencial no Brasil tem duracao de quatro anos.", "Constituicao Federal", planalto),
+        ("Pode haver segundo turno para presidente quando nenhum candidato alcanca maioria absoluta.", "Constituicao Federal", planalto),
+        ("Pode haver segundo turno para governador quando nenhum candidato alcanca maioria absoluta.", "Constituicao Federal", planalto),
+        ("Pode haver segundo turno para prefeito em municipios com mais de duzentos mil eleitores.", "Constituicao Federal", planalto),
+        ("Partidos politicos precisam de registro para disputar eleicoes.", "TSE", tse),
+        ("Candidaturas sao registradas na Justica Eleitoral.", "TSE", tse),
+        ("Eleitores podem justificar ausencia quando nao votam.", "TSE", tse),
+        ("Mesarios trabalham nas secoes eleitorais durante a votacao.", "TSE", tse),
+        ("A propaganda eleitoral e regulada pela legislacao eleitoral.", "TSE", tse),
+        ("A biometria e usada pela Justica Eleitoral para identificar eleitores cadastrados.", "TSE", tse),
+        ("Votos brancos e nulos nao sao contabilizados para candidatos.", "TSE", tse),
+        ("Deputados federais sao eleitos pelo sistema proporcional.", "TSE", tse),
+        ("Vereadores sao eleitos pelo sistema proporcional.", "TSE", tse),
+        ("Senadores sao eleitos pelo sistema majoritario.", "TSE", tse),
+        ("Governadores sao eleitos pelo sistema majoritario.", "TSE", tse),
+        ("Presidentes sao eleitos pelo sistema majoritario.", "TSE", tse),
+        ("Prefeitos sao eleitos pelo sistema majoritario.", "TSE", tse),
+        ("O eleitor deve apresentar documento oficial para votar.", "TSE", tse),
+        ("A urna eletronica registra votos de forma digital.", "TSE", tse),
+        ("A apuracao oficial das eleicoes e feita pela Justica Eleitoral.", "TSE", tse),
+        ("As eleicoes municipais escolhem prefeitos e vereadores.", "TSE", tse),
+        ("As eleicoes gerais escolhem presidente, governadores, senadores e deputados.", "TSE", tse),
+        ("O primeiro turno das eleicoes ocorre no primeiro domingo de outubro.", "Constituicao Federal", planalto),
+        ("O segundo turno das eleicoes ocorre no ultimo domingo de outubro quando necessario.", "Constituicao Federal", planalto),
+        ("A posse do presidente eleito ocorre em primeiro de janeiro.", "Constituicao Federal", planalto),
+        ("A idade minima para votar no Brasil e dezesseis anos.", "Constituicao Federal", planalto),
+        ("A idade minima para disputar a Presidencia da Republica e trinta e cinco anos.", "Constituicao Federal", planalto),
+        ("A idade minima para disputar o Senado Federal e trinta e cinco anos.", "Constituicao Federal", planalto),
+        ("A idade minima para disputar o cargo de deputado federal e vinte e um anos.", "Constituicao Federal", planalto),
+        ("A idade minima para disputar o cargo de prefeito e vinte e um anos.", "Constituicao Federal", planalto),
+        ("A idade minima para disputar o cargo de vereador e dezoito anos.", "Constituicao Federal", planalto),
+        ("O alistamento eleitoral e obrigatorio para maiores de dezoito anos alfabetizados.", "Constituicao Federal", planalto),
+        ("O alistamento eleitoral e facultativo para maiores de setenta anos.", "Constituicao Federal", planalto),
+        ("A Justica Eleitoral possui zonas eleitorais e secoes eleitorais.", "TSE", tse),
+        ("A urna eletronica brasileira permite voto para diferentes cargos na mesma eleicao.", "TSE", tse),
+        ("O eleitor pode consultar seu local de votacao nos canais da Justica Eleitoral.", "TSE", tse),
+        ("A diplomacao confirma que candidatos eleitos estao aptos a tomar posse.", "TSE", tse),
+        ("A prestacao de contas de campanha e fiscalizada pela Justica Eleitoral.", "TSE", tse),
+        ("Doacoes eleitorais seguem regras definidas pela legislacao eleitoral.", "TSE", tse),
+        ("Pesquisas eleitorais precisam ser registradas na Justica Eleitoral.", "TSE", tse),
+        ("A urna eletronica nao e conectada diretamente a internet durante a votacao.", "TSE", tse),
+    ]
+    return [
+        {
+            "texto": text,
+            "fonte": source,
+            "source_url": url,
+            "veredito": "VERDADEIRO",
+            "data": "",
+            "image_url": "",
+            "tags": "['ground_truth', 'eleicoes']",
+        }
+        for text, source, url in rows
+    ]
 
-    # Detecta delimitador do arquivo bruto (pipe no dataset do professor).
-    with open(SRC, "r", encoding="utf-8", errors="ignore") as f:
-        header_line = f.readline()
+
+def _map_label(value: str):
+    if pd.isna(value):
+        return None
+
+    text = str(value).lower().strip()
+    negative_tokens = [
+        "false", "falso", "falsa", "mentira", "errado", "enganoso", "enganador",
+        "distorcido", "fora de contexto", "fake", "fraude", "nao", "não", "no",
+        "0", "engano", "faux", "insustentavel", "insustentável",
+    ]
+    positive_tokens = [
+        "true", "verdade", "verificado", "comprovado", "confirmado", "correto",
+        "verdadeiro", "sim", "yes", "1", "contextualizando",
+    ]
+
+    if any(token in text for token in negative_tokens):
+        return "FALSO"
+    if any(token in text for token in positive_tokens):
+        return "VERDADEIRO"
+
+    try:
+        numeric = float(text)
+        return "VERDADEIRO" if numeric > 0.5 else "FALSO"
+    except Exception:
+        return None
+
+
+def _is_conflict_marker(value: str) -> bool:
+    text = value.strip()
+    return text == "=======" or text.startswith("<<<<<<<") or text.startswith(">>>>>>>")
+
+
+def normalize() -> None:
+    DST_DIR.mkdir(parents=True, exist_ok=True)
+    source_file = _find_source_file()
+
+    with source_file.open("r", encoding="utf-8", errors="ignore") as file:
+        header_line = file.readline()
     delimiter = "|" if "|" in header_line else ","
 
     try:
-        df = pd.read_csv(SRC, sep=delimiter, encoding="utf-8", engine="python", on_bad_lines="skip")
+        df = pd.read_csv(source_file, sep=delimiter, encoding="utf-8", engine="python", on_bad_lines="skip")
     except UnicodeDecodeError:
-        df = pd.read_csv(SRC, sep=delimiter, encoding="latin-1", engine="python", on_bad_lines="skip")
+        df = pd.read_csv(source_file, sep=delimiter, encoding="latin-1", engine="python", on_bad_lines="skip")
 
-    # renomeia colunas conhecidas para o padrão esperado pelo pipeline
     mapping = {
-        'Claim': 'texto',
-        'Claim ': 'texto',
-        'Source Name': 'fonte',
-        'Source URL': 'source_url',
-        'Verdict': 'veredito',
-        'Review Publication Date': 'data',
-        'Image URL': 'image_url',
-        'Tags': 'tags'
+        "Claim": "texto",
+        "Claim ": "texto",
+        "Source Name": "fonte",
+        "Source URL": "source_url",
+        "Verdict": "veredito",
+        "Review Publication Date": "data",
+        "Image URL": "image_url",
+        "Tags": "tags",
     }
+    df = df.rename(columns={key: value for key, value in mapping.items() if key in df.columns})
 
-    df = df.rename(columns={k: v for k, v in mapping.items() if k in df.columns})
-
-    # Corrige texto com encoding quebrado em todas as colunas textuais.
     for col in df.columns:
         if pd.api.types.is_string_dtype(df[col]) or df[col].dtype == object:
             df[col] = df[col].apply(_fix_mojibake)
 
-    # garantir colunas básicas
-    if 'texto' not in df.columns:
-        # tenta usar a primeira coluna textual
-        for c in df.columns:
-            if df[c].dtype == object:
-                df = df.rename(columns={c: 'texto'})
-                break
+    if "texto" not in df.columns:
+        text_col = next((col for col in df.columns if df[col].dtype == object), df.columns[0])
+        df = df.rename(columns={text_col: "texto"})
+    if "veredito" not in df.columns:
+        label_col = next((col for col in ["Verdict", "verdict", "rating", "Rating"] if col in df.columns), None)
+        if label_col:
+            df = df.rename(columns={label_col: "veredito"})
 
-    if 'veredito' not in df.columns:
-        # tentar inferir de colunas comuns
-        for c in ['Verdict', 'verdict', 'rating', 'Rating']:
-            if c in df.columns:
-                df = df.rename(columns={c: 'veredito'})
-                break
+    for column in EXPECTED_COLUMNS:
+        if column not in df.columns:
+            df[column] = ""
+    df = df[EXPECTED_COLUMNS]
 
-    # Enriquecimento mínimo para reduzir viés de classe negativa.
-    if 'texto' in df.columns and 'veredito' in df.columns:
-        true_rows = [
-            {
-                'texto': 'O Tribunal Superior Eleitoral (TSE) e responsavel pela organizacao das eleicoes no Brasil.',
-                'veredito': 'VERDADEIRO',
-                'fonte': 'TSE',
-                'source_url': 'https://www.tse.jus.br',
-            },
-            {
-                'texto': 'Lula foi eleito presidente do Brasil em outubro de 2022.',
-                'veredito': 'VERDADEIRO',
-                'fonte': 'Governo Federal',
-                'source_url': 'https://www.gov.br/pt-br/presidencia',
-            },
-            {
-                'texto': 'O voto e obrigatorio para cidadaos alfabetizados entre 18 e 70 anos no Brasil.',
-                'veredito': 'VERDADEIRO',
-                'fonte': 'TSE',
-                'source_url': 'https://www.tse.jus.br/eleitor/justificativa-eleitoral',
-            },
-            {
-                'texto': 'As urnas eletronicas sao usadas no Brasil desde 1996.',
-                'veredito': 'VERDADEIRO',
-                'fonte': 'TSE',
-                'source_url': 'https://www.tse.jus.br/comunicacao/noticias',
-            },
-            {
-                'texto': 'Bolsonaro foi presidente do Brasil antes de Lula.',
-                'veredito': 'VERDADEIRO',
-                'fonte': 'Governo Federal',
-                'source_url': 'https://www.gov.br/pt-br/presidencia',
-            },
-            {
-                'texto': 'O segundo turno das eleicoes no Brasil ocorre em outubro.',
-                'veredito': 'VERDADEIRO',
-                'fonte': 'TSE',
-                'source_url': 'https://www.tse.jus.br/eleicoes/calendario-eleitoral',
-            },
-        ]
+    text_values = df["texto"].fillna("").astype(str).str.strip()
+    df = df[text_values.ne("") & ~text_values.apply(_is_conflict_marker)].copy()
+    df["veredito"] = df["veredito"].apply(_map_label)
+    df = df[df["veredito"].notna()].copy()
 
-        existing_texts = set(df['texto'].astype(str).str.strip().str.lower())
-        to_add = []
-        for row in true_rows:
-            key = row['texto'].strip().lower()
-            if key in existing_texts:
-                continue
-            row_full = {c: '' for c in df.columns}
-            row_full.update({k: v for k, v in row.items() if k in row_full})
-            to_add.append(row_full)
+    ground_truth = pd.DataFrame(_ground_truth_rows(), columns=EXPECTED_COLUMNS)
+    df = pd.concat([df, ground_truth], ignore_index=True)
+    df = df.drop_duplicates(subset=["texto", "fonte", "source_url"], keep="first")
+    df = df.sort_values(["veredito", "fonte", "texto"], kind="stable").reset_index(drop=True)
 
-        if to_add:
-            df = pd.concat([df, pd.DataFrame(to_add)], ignore_index=True)
-
-    # normalize valores de veredito para minúsculas (ajuste no treinamento)
-    if 'veredito' in df.columns:
-        df['veredito_orig'] = df['veredito'].astype(str)
-        positive_tokens = [
-            "true", "verdade", "verificado", "comprovado", "confirmado", "correto", "verdadeiro", "sim", "yes", "1", "true"
-        ]
-        negative_tokens = [
-            "false", "falso", "mentira", "errado", "enganoso", "enganador", "distorcido", "fora de contexto", "fake", "fraude", "não", "nao", "no", "0", "engano", "faux", "errado", "não_é_bem_assim", "não é bem assim", "não_é_bem_assim"
-        ]
-
-        def map_label(v: str):
-            if pd.isna(v):
-                return None
-            vv = str(v).lower().strip()
-            for tok in positive_tokens:
-                if tok in vv:
-                    return 'VERDADEIRO'
-            for tok in negative_tokens:
-                if tok in vv:
-                    return 'FALSO'
-            # try numeric
-            try:
-                nv = float(vv)
-                return 'VERDADEIRO' if nv > 0.5 else 'FALSO'
-            except Exception:
-                return None
-
-        df['veredito_norm'] = df['veredito_orig'].apply(map_label)
-        kept = df['veredito_norm'].notna().sum()
-        total = len(df)
-        print(f"Rótulos mapeados: {kept}/{total} (serão mantidas apenas entradas mapeadas)")
-        # manter apenas linhas mapeadas (reduz ruido)
-        df = df[df['veredito_norm'].notna()].copy()
-        # escrever o veredito normalizado em coluna 'veredito'
-        df['veredito'] = df['veredito_norm']
-        df = df.drop(columns=['veredito_orig', 'veredito_norm'])
-
-    df.to_csv(DST, index=False, encoding='utf-8')
+    df.to_csv(DST, index=False, encoding="utf-8")
     print(f"Dataset normalizado salvo em: {DST} ({len(df)} linhas)")
+    print(df["veredito"].value_counts().to_string())
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     normalize()

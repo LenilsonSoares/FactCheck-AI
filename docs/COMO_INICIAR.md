@@ -1,89 +1,67 @@
-# Como iniciar o sistema
+# Como Iniciar
 
-Este guia mostra os comandos minimos para rodar o projeto localmente no Windows usando VS Code.
-
-## 1. Abrir terminal na raiz do projeto
-
-Caminho esperado:
-
-C:/Users/lenil/OneDrive/Documentos/GitHub/FactCheck-AI
-
-## 1.1 Iniciar tudo com um comando (recomendado)
+## Execucao rapida
 
 Na raiz do projeto:
 
+```powershell
 ./iniciar_tudo.ps1
+```
 
-Esse comando abre dois terminais automaticamente:
+O script:
 
-1. Backend em http://127.0.0.1:8001
-2. Frontend em http://localhost:8081
+1. instala dependencias, se necessario;
+2. normaliza `data/raw/eleicoes.csv` ou `data/raw/eleições.csv`;
+3. garante que `backend/app/ml_models/modelo.pkl` exista;
+4. inicia o backend em `http://127.0.0.1:8001`;
+5. inicia o frontend web em `http://localhost:8081`.
 
-Para parar os servicos de uma vez:
+Para encerrar:
 
+```powershell
 ./parar_tudo.ps1
+```
 
-## 2. Iniciar o backend (FastAPI)
+## Backend manual
 
-No terminal 1:
-
-1. Entrar na pasta backend:
-
+```powershell
 cd backend
+python -m pip install -r requirements.txt
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
+```
 
-2. Instalar dependencias (apenas na primeira vez):
+Teste:
 
-c:/python314/python.exe -m pip install -r requirements.txt
+```powershell
+Invoke-RestMethod http://127.0.0.1:8001/health
+```
 
-3. Subir a API:
+## Frontend manual
 
-c:/python314/python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001 --reload
-
-4. Testar se esta online:
-
-Abrir no navegador:
-http://127.0.0.1:8001/health
-
-## 3. Iniciar o frontend (Expo Web)
-
-No terminal 2:
-
-1. Entrar na pasta frontend:
-
+```powershell
 cd frontend
-
-2. Instalar dependencias (apenas na primeira vez):
-
 npm install
+$env:EXPO_PUBLIC_API_BASE_URL="http://127.0.0.1:8001"
+npx.cmd expo start --web --port 8081
+```
 
-3. Definir URL do backend para a sessao atual e iniciar web:
+Abrir:
 
-PowerShell:
-$env:EXPO_PUBLIC_API_BASE_URL="http://127.0.0.1:8001"; npx.cmd expo start --web --port 8081
-
-4. Abrir no navegador:
+```text
 http://localhost:8081
+```
 
-## 4. Rodar testes do backend
+## Testes
 
-No terminal da pasta backend:
+Na raiz:
 
-c:/python314/python.exe -m pytest -q
+```powershell
+python -m pytest -q
+```
 
-## 5. Parar os servicos
+## Problemas comuns
 
-1. No terminal do backend: Ctrl + C
-2. No terminal do frontend: Ctrl + C
-
-## 6. Erros comuns
-
-1. Porta 8001 em uso:
-   - Fechar processo que esta usando a porta 8001.
-   - Tentar novamente iniciar o backend.
-
-2. Mensagem "Backend indisponivel" no frontend:
-   - Confirmar backend online em http://127.0.0.1:8001/health.
-   - Confirmar frontend apontando para EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8001.
-
-3. Porta 8081 ocupada:
-   - Iniciar frontend em outra porta, por exemplo 8082.
+- **Backend indisponivel:** confirme se a API esta em `http://127.0.0.1:8001/health`.
+- **Frontend apontando para porta errada:** confirme `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8001`.
+- **Modelo ausente:** rode `python scripts/normalize_dataset.py` e `python scripts/train_model.py`.
+- **Chave Google ausente:** configure `GOOGLE_API_KEY` em `backend/.env`. Sem a chave, o sistema usa o fallback de ML.

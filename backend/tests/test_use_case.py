@@ -88,7 +88,7 @@ def test_use_case_returns_inconclusive_on_classifier_error():
     result = use_case.execute("texto")
 
     assert result.source == "Internal AI Model"
-    assert result.rating == "Inconclusive"
+    assert result.rating == "Inconclusivo"
     assert result.confidence == 0.5
     assert len(repo.rows) == 1
 
@@ -122,6 +122,40 @@ def test_use_case_resolves_bolsonaro_president_2025_as_false():
 
     assert result.source == "Internal AI Model"
     assert result.rating == "Falso"
+    assert result.confidence == 0.98
+    assert len(repo.rows) == 1
+    assert repo.rows[0]["source"] == "Rule-based Context"
+
+
+def test_use_case_resolves_lula_not_president_as_false():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Verdadeiro", "confidence": 0.9}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Lula nao e presidente?")
+
+    assert result.source == "Internal AI Model"
+    assert result.rating == "Falso"
+    assert result.confidence == 0.98
+    assert len(repo.rows) == 1
+    assert repo.rows[0]["source"] == "Rule-based Context"
+
+
+def test_use_case_resolves_bolsonaro_not_president_as_true():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Falso", "confidence": 0.2}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Bolsonaro nao e presidente?")
+
+    assert result.source == "Internal AI Model"
+    assert result.rating == "Verdadeiro"
     assert result.confidence == 0.98
     assert len(repo.rows) == 1
     assert repo.rows[0]["source"] == "Rule-based Context"

@@ -1,96 +1,59 @@
-# Estrutura Completa do App (FactCheck-AI)
-
-## Visao geral
+# Estrutura Completa
 
 ```text
 FactCheck-AI/
 ├── backend/
-│   ├── .env
-│   ├── .env.example
-│   ├── requirements.txt
 │   ├── app/
-│   │   ├── main.py
-│   │   ├── api/
-│   │   │   ├── dependencies.py
-│   │   │   ├── routes.py
-│   │   │   └── schemas.py
-│   │   ├── application/
-│   │   │   ├── ports.py
-│   │   │   └── use_cases.py
-│   │   ├── domain/
-│   │   │   └── models.py
-│   │   ├── infrastructure/
-│   │   │   ├── csv_dataset_repository.py
-│   │   │   ├── google_fact_check_provider.py
-│   │   │   └── ml_claim_classifier.py
-│   │   ├── services/
-│   │   │   ├── google_api.py
-│   │   │   └── ml_engine.py
-│   │   └── ml_models/
-│   └── tests/
-│       ├── test_api.py
-│       └── test_use_case.py
+│   │   ├── api/                 # Rotas, schemas e dependencias FastAPI
+│   │   ├── application/         # Caso de uso principal e portas
+│   │   ├── domain/              # Modelos de resposta
+│   │   ├── infrastructure/      # Adaptadores Google, ML e CSV
+│   │   ├── ml_models/           # modelo.pkl treinado
+│   │   ├── services/            # Cliente Google e loader do modelo
+│   │   └── main.py              # App FastAPI
+│   ├── tests/                   # Testes de API e caso de uso
+│   └── requirements.txt
 ├── data/
-│   ├── raw/
-│   │   └── eleicoes.csv
-│   └── processed/
-│       └── dataset_eleicoes.csv
-├── frontend/
-│   ├── .env
-│   ├── .env.example
-│   ├── App.js
-│   ├── index.js
-│   ├── app.json
-│   ├── package.json
-│   └── assets/
-├── scripts/
-│   ├── bootstrap_dataset.py
-│   ├── normalize_dataset.py
-│   ├── train_model.py
-│   └── ensure_model.py
-├── doc/
-│   ├── COMO_INICIAR.md
-│   └── ESTRUTURA_COMPLETA.md
-├── iniciar_tudo.ps1
+│   ├── raw/                     # Coleta bruta do factcheckexplorer
+│   ├── processed/               # Dataset limpo usado no treino
+│   └── runtime/                 # Consultas feitas durante o uso do app
+├── docs/                        # Documentacao e roteiro da apresentacao
+├── frontend/                    # App React Native/Expo
+├── notebooks/                   # Analises exploratorias
+├── scripts/                     # Coleta, normalizacao e treino
+├── iniciar_tudo.ps1             # Inicializacao completa
+├── parar_tudo.ps1               # Encerramento das portas locais
+├── pytest.ini                   # Testes rodando a partir da raiz
 └── README.md
 ```
 
-## Responsabilidade por camada
+## Responsabilidade por Camada
 
-### Backend (Clean Architecture)
-- `api/`: entrada HTTP (FastAPI), validacao de request e resposta.
-- `application/`: regras de caso de uso (fluxo API externa -> fallback ML -> persistencia).
-- `domain/`: contratos e modelos de dominio.
-- `infrastructure/`: adaptadores concretos (CSV, Google Fact Check, classificador ML).
-- `services/`: implementacao tecnica de clientes e motor de inferencia.
-- `ml_models/`: artefato treinado (`modelo.pkl`).
+- `frontend/`: recebe a afirmacao do usuario, chama `/verify` e exibe resultado, confianca, fonte e historico local.
+- `backend/app/api/`: expoe `/health` e `/verify`.
+- `backend/app/application/`: implementa o fluxo API externa primeiro, ML depois.
+- `backend/app/services/google_api.py`: consulta Google Fact Check Tools API.
+- `backend/app/services/ml_engine.py`: carrega e executa o modelo `joblib`.
+- `backend/app/infrastructure/csv_dataset_repository.py`: salva consultas de runtime em CSV local.
+- `scripts/bootstrap_dataset.py`: coleta dataset inicial com `factcheckexplorer`.
+- `scripts/normalize_dataset.py`: limpa, normaliza, deduplica e fortalece o dataset.
+- `scripts/train_model.py`: treina `TF-IDF + Logistic Regression`.
 
-### Dados
-- `data/raw/`: dataset bruto coletado (entrada).
-- `data/processed/`: dataset limpo/normalizado usado no treino.
+## Fluxo Tecnico
 
-### Frontend
-- `App.js`: tela principal e integracao com backend.
-- `index.js`: ponto de entrada Expo/React Native.
-- `.env`: URL da API para o ambiente atual.
+1. Usuario envia uma afirmacao.
+2. Frontend envia `POST /verify`.
+3. Backend consulta Google Fact Check Tools API.
+4. Havendo verificacao, retorna resultado oficial e salva consulta.
+5. Sem verificacao externa, chama o modelo local.
+6. Modelo retorna `Verdadeiro`, `Falso` ou `Inconclusivo`.
+7. Resultado e salvo em `data/runtime/consultas.csv`.
 
-### Scripts operacionais
-- `bootstrap_dataset.py`: coleta dataset inicial com `factcheckexplorer`.
-- `normalize_dataset.py`: limpeza de encoding, normalizacao e mapeamento de labels.
-- `train_model.py`: treino do modelo e exportacao de `modelo.pkl`.
-- `ensure_model.py`: garante existencia do modelo (treina se faltar).
+## Entregaveis Cobertos
 
-## Fluxo operacional recomendado
-
-1. Gerar dataset inicial.
-2. Normalizar dataset.
-3. Treinar modelo.
-4. Subir backend.
-5. Subir frontend.
-
-## Entrypoints
-
-- Backend: `backend/app/main.py`
-- Frontend: `frontend/index.js`
-- Rota principal de verificacao: `POST /verify`
-- Health check: `GET /health`
+- Codigo fonte: backend, frontend e scripts.
+- Dataset utilizado: `data/raw/` e `data/processed/dataset_eleicoes.csv`.
+- Modelo treinado: `backend/app/ml_models/modelo.pkl`.
+- Documentacao: `README.md` e `docs/`.
+- Apresentacao: `docs/ROTEIRO_APRESENTACAO.md` e `docs/Factum-Apresentacao.pptx`.
+- Demonstracao: `./iniciar_tudo.ps1` inicia backend e frontend.

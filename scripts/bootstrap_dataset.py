@@ -56,7 +56,6 @@ def build_dataset() -> None:
     raw_dir = base_dir / "data" / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
-    failures = []
     all_items = []
     failures = []
 
@@ -103,7 +102,7 @@ def build_dataset() -> None:
         df["Verdict"] = df["Verdict"].apply(_normalize_verdict)
 
     base_dir = Path(__file__).resolve().parents[1]
-    output_json = base_dir / "output.json"
+    output_json = raw_dir / "output.json"
     output_pipe = base_dir / "output_pipe.csv"
 
     with output_json.open("w", encoding="utf-8") as f:

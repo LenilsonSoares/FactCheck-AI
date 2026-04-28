@@ -5,7 +5,7 @@ from typing import Optional
 
 class CsvDatasetRepository:
     def __init__(self, base_dir: Path) -> None:
-        self._dataset_path = base_dir / "data" / "processed" / "dataset_eleicoes.csv"
+        self._dataset_path = base_dir / "data" / "runtime" / "consultas.csv"
 
     def append(
         self,

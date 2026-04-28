@@ -30,7 +30,7 @@ const VERIFICATION_HISTORY_VERSION = '2026-04-18-rule-fix';
 const API_CONFIG_KEY = 'api_config';
 const API_CONFIG_VERSION_KEY = 'api_config_version';
 const API_CONFIG_VERSION = '2026-04-18-env-priority';
-const API_DEFAULT_PORT = '8002';
+const API_DEFAULT_PORT = '8001';
 
 const ENV_API_BASE_URL = String(process.env.EXPO_PUBLIC_API_BASE_URL || '').trim();
 const DEFAULT_API_BASE_URL = ENV_API_BASE_URL || (
