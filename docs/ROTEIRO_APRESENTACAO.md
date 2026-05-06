@@ -25,8 +25,9 @@
 1. Usuario envia uma afirmacao.
 2. Backend consulta Google Fact Check.
 3. Se existir verificacao, retorna resultado oficial.
-4. Se nao existir, consulta o modelo local.
-5. Resultado e salvo no CSV de consultas.
+4. Se nao existir, usa regras contextuais curtas quando cabivel.
+5. Quando nao ha regra contextual, consulta o modelo local.
+6. Resultado e salvo no CSV de consultas.
 
 ## Slide 5 - Dataset
 
@@ -41,6 +42,7 @@
 - Classificador: Logistic Regression.
 - Balanceamento no treino com upsampling da classe minoritaria.
 - Resultado possivel: Verdadeiro, Falso ou Inconclusivo.
+- Regras contextuais tratam fatos eleitorais simples antes do fallback estatistico.
 
 ## Slide 7 - Metricas
 

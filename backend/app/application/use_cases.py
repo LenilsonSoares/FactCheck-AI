@@ -10,6 +10,7 @@ from app.application.ports import ClaimClassifier, DatasetRepository, FactCheckP
 
 
 logger = logging.getLogger(__name__)
+RULE_BASED_SOURCE = "Rule-based Context"
 
 
 @dataclass
@@ -44,13 +45,13 @@ class VerifyClaimUseCase:
             rating, confidence = direct_fact
             self._safe_store(
                 text=statement,
-                source="Rule-based Context",
+                source=RULE_BASED_SOURCE,
                 rating=rating,
                 confidence=confidence,
                 source_url="",
             )
             return VerificationResult(
-                source="Internal AI Model",
+                source=RULE_BASED_SOURCE,
                 rating=rating,
                 text=statement,
                 confidence=confidence,
@@ -121,7 +122,12 @@ class VerifyClaimUseCase:
             "lula": [(2003, 2010), (2023, 2026)],
             "bolsonaro": [(2019, 2022)],
         }
-        is_true = any(start <= target_year <= end for start, end in mandates[person])
+        is_president = any(start <= target_year <= end for start, end in mandates[person])
+        is_left_office_claim = bool(
+            re.search(r"\b(deixou|parou|saiu)\s+de\s+ser\s+president", text)
+        )
+
+        is_true = not is_president if is_left_office_claim else is_president
         if self._has_negation(text):
             is_true = not is_true
 
@@ -137,7 +143,17 @@ class VerifyClaimUseCase:
         if "voto" not in text or "obrigat" not in text or "brasil" not in text:
             return None
 
-        is_true = not self._has_negation(text)
+        optional_vote_group = bool(
+            re.search(
+                r"\b(analfabet|16|17|dezesseis|dezessete|maior(?:es)? de 70|"
+                r"mais de 70|maior(?:es)? de setenta|mais de setenta|setenta anos)\w*\b",
+                text,
+            )
+        )
+
+        is_true = not optional_vote_group
+        if self._has_negation(text):
+            is_true = not is_true
         rating = "Verdadeiro" if is_true else "Falso"
         confidence = 0.98
         return rating, confidence

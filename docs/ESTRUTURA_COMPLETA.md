@@ -45,9 +45,10 @@ FactCheck-AI/
 2. Frontend envia `POST /verify`.
 3. Backend consulta Google Fact Check Tools API.
 4. Havendo verificacao, retorna resultado oficial e salva consulta.
-5. Sem verificacao externa, chama o modelo local.
-6. Modelo retorna `Verdadeiro`, `Falso` ou `Inconclusivo`.
-7. Resultado e salvo em `data/runtime/consultas.csv`.
+5. Sem verificacao externa, aplica regras contextuais curtas quando cabivel.
+6. Quando nao ha regra contextual, chama o modelo local.
+7. Modelo retorna `Verdadeiro`, `Falso` ou `Inconclusivo`.
+8. Resultado e salvo em `data/runtime/consultas.csv`.
 
 ## Entregaveis Cobertos
 

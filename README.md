@@ -8,6 +8,7 @@ Factum e uma aplicacao academica de verificacao de fatos no contexto eleitoral b
 - **Backend Python:** FastAPI, localizado em `backend/`.
 - **API externa:** Google Fact Check Tools API.
 - **Machine Learning:** pipeline `TF-IDF + Logistic Regression`.
+- **Regras contextuais:** validacoes curtas para fatos eleitorais basicos antes do fallback estatistico.
 - **Dataset:** dados brutos em `data/raw/`, dataset de treino em `data/processed/` e consultas de runtime em `data/runtime/`.
 
 ## Fluxo da Aplicacao
@@ -15,7 +16,7 @@ Factum e uma aplicacao academica de verificacao de fatos no contexto eleitoral b
 1. O usuario envia uma afirmacao pelo app.
 2. O backend consulta a Google Fact Check Tools API.
 3. Se a API encontrar verificacao, o resultado oficial e retornado e salvo em `data/runtime/consultas.csv`.
-4. Se a API nao encontrar verificacao, o backend consulta o modelo local de Machine Learning.
+4. Se a API nao encontrar verificacao, o backend aplica regras contextuais curtas e, quando nao houver regra, consulta o modelo local de Machine Learning.
 5. O resultado estimado e retornado ao usuario e tambem salvo em `data/runtime/consultas.csv`.
 
 ## Como Rodar no Windows
@@ -110,7 +111,7 @@ python -m pytest -q
 Resultado esperado:
 
 ```text
-12 passed
+16 passed
 ```
 
 ## Observacao Academica

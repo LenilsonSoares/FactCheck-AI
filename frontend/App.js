@@ -313,6 +313,24 @@ const App = () => {
     return Math.max(0, Math.min(100, Math.round(percentage)));
   };
 
+  const getSourceType = (source) => {
+    const normalized = String(source || '').trim().toLowerCase();
+    if (normalized.includes('google')) return 'api';
+    if (normalized.includes('rule')) return 'rules';
+    return 'ml';
+  };
+
+  const getSourceLabel = (sourceType) => {
+    switch (sourceType) {
+      case 'api':
+        return 'Google Fact Check API';
+      case 'rules':
+        return 'Contexto eleitoral interno';
+      default:
+        return 'Modelo de IA';
+    }
+  };
+
   const handleVerify = async () => {
     if (!inputText.trim()) {
       Alert.alert('Atenção', 'Por favor, digite uma afirmação para verificar');
@@ -363,7 +381,8 @@ const App = () => {
       const data = await response.json();
       const normalizedStatus = normalizeRating(data.rating);
       const normalizedConfidence = normalizeConfidence(data.confidence);
-      const sourceType = data.source === 'Google Fact Check' ? 'api' : 'ml';
+      const sourceType = getSourceType(data.source);
+      const sourceLabel = getSourceLabel(sourceType);
       
       const verificationResult = {
         id: Date.now().toString(),
@@ -372,8 +391,9 @@ const App = () => {
         color: getStatusColor(normalizedStatus),
         bg: getStatusBgColor(normalizedStatus),
         confidence: normalizedConfidence,
-        details: `Classificação retornada por ${data.source || 'modelo interno'}.`,
+        details: `Classificação retornada por ${sourceLabel}.`,
         source_type: sourceType,
+        source_label: sourceLabel,
         raw_rating: data.rating,
         timestamp: new Date().toISOString(),
       };
@@ -635,7 +655,7 @@ const App = () => {
                   <View style={styles.sourceTypeContainer}>
                     <MaterialIcons name="source" size={12} color="#64748b" />
                     <Text style={styles.sourceTypeText}>
-                      Fonte: {result.source_type === 'api' ? 'Google Fact Check API' : 'Modelo de IA'}
+                      Fonte: {result.source_label || getSourceLabel(result.source_type)}
                     </Text>
                   </View>
                 )}

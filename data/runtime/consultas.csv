@@ -1,0 +1,6 @@
+texto,fonte,source_url,veredito,data,image_url,tags,confidence
+lula e presidente,Rule-based Context,,Verdadeiro,,,[],0.98
+lula e bolsonaro e presidente,Rule-based Context,,Verdadeiro,,,[],0.98
+bolsonaro e presidente,Rule-based Context,,Falso,,,[],0.98
+voto no brasil e obrigatorio?,Rule-based Context,,Verdadeiro,,,[],0.98
+voto no brasil nao e obrigatorio?,Rule-based Context,,Falso,,,[],0.98
