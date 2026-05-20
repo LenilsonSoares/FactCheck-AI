@@ -77,6 +77,74 @@ def test_use_case_fallback_to_classifier_when_provider_fails():
     assert repo.rows[0]["source"] == "Internal AI Model"
 
 
+def test_use_case_returns_inconclusive_for_vague_arrest_question():
+    repo = InMemoryDataset()
+    google_claim = {
+        "text": "Outra checagem parecida, mas nao equivalente",
+        "claimReview": [{"publisher": {"name": "Agencia X"}, "textualRating": "Falso"}],
+    }
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=google_claim),
+        classifier=FakeClassifier(result={"rating": "Falso", "confidence": 0.99}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Lula foi preso?")
+
+    assert result.source == "Rule-based Context"
+    assert result.rating == "Inconclusivo"
+    assert result.confidence == 0.55
+    assert len(repo.rows) == 1
+
+
+def test_use_case_returns_inconclusive_for_future_candidacy_question():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Verdadeiro", "confidence": 0.99}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Bolsonaro vai candidatar a presidente?")
+
+    assert result.source == "Rule-based Context"
+    assert result.rating == "Inconclusivo"
+    assert result.confidence == 0.55
+    assert len(repo.rows) == 1
+
+
+def test_use_case_returns_inconclusive_for_unknown_presidency_name():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Inconclusivo", "confidence": 0.99}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Favio e presidente?")
+
+    assert result.source == "Rule-based Context"
+    assert result.rating == "Inconclusivo"
+    assert result.confidence == 0.55
+    assert len(repo.rows) == 1
+
+
+def test_use_case_returns_inconclusive_for_broad_urna_safety_question():
+    repo = InMemoryDataset()
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=None),
+        classifier=FakeClassifier(result={"rating": "Falso", "confidence": 0.99}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("A urna e segura?")
+
+    assert result.source == "Rule-based Context"
+    assert result.rating == "Inconclusivo"
+    assert result.confidence == 0.55
+    assert len(repo.rows) == 1
+
+
 def test_use_case_returns_inconclusive_on_classifier_error():
     repo = InMemoryDataset()
     use_case = VerifyClaimUseCase(
@@ -102,6 +170,33 @@ def test_use_case_resolves_lula_president_2025_without_classifier_call():
     )
 
     result = use_case.execute("Lula e presidente em 2025?")
+
+    assert result.source == "Rule-based Context"
+    assert result.rating == "Verdadeiro"
+    assert result.confidence == 0.98
+    assert len(repo.rows) == 1
+    assert repo.rows[0]["source"] == "Rule-based Context"
+
+
+def test_use_case_prefers_context_rule_for_direct_presidency_question():
+    repo = InMemoryDataset()
+    google_claim = {
+        "text": "Lula e presidente?",
+        "claimReview": [
+            {
+                "publisher": {"name": "Agencia X"},
+                "textualRating": "Falso",
+                "url": "https://example.org/check",
+            }
+        ],
+    }
+    use_case = VerifyClaimUseCase(
+        fact_check_provider=FakeProvider(result=google_claim),
+        classifier=FakeClassifier(result={"rating": "Falso", "confidence": 0.99}),
+        dataset_repository=repo,
+    )
+
+    result = use_case.execute("Lula e presidente?")
 
     assert result.source == "Rule-based Context"
     assert result.rating == "Verdadeiro"

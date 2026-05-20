@@ -27,14 +27,13 @@ def _parse_cors_origins() -> list[str]:
         ]
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
-# 1. Inicialização Sênior (Metadados ajudam na documentação automática)
 app = FastAPI(
     title="FactCheck-AI API",
     description="Sistema de verificação de fatos com Google API e Machine Learning",
     version="1.1.0"
 )
 
-# 2. Configuração de CORS (Essencial para o Flutter/Web se conectar sem erros)
+# CORS para o app Expo/web em desenvolvimento.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_parse_cors_origins(),
@@ -45,6 +44,5 @@ app.add_middleware(
 
 app.include_router(api_router)
 
-# 5. Entrypoint para execução direta
 if __name__ == "__main__":
     uvicorn.run("app.main:app", host="0.0.0.0", port=8001, reload=True)

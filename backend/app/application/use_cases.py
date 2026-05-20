@@ -20,6 +20,40 @@ class VerifyClaimUseCase:
     dataset_repository: DatasetRepository
 
     def execute(self, statement: str) -> VerificationResult:
+        question_guard = self._resolve_insufficient_context_question(statement)
+        if question_guard:
+            rating, confidence = question_guard
+            self._safe_store(
+                text=statement,
+                source=RULE_BASED_SOURCE,
+                rating=rating,
+                confidence=confidence,
+                source_url="",
+            )
+            return VerificationResult(
+                source=RULE_BASED_SOURCE,
+                rating=rating,
+                text=statement,
+                confidence=confidence,
+            )
+
+        direct_fact = self._resolve_context_fact(statement)
+        if direct_fact:
+            rating, confidence = direct_fact
+            self._safe_store(
+                text=statement,
+                source=RULE_BASED_SOURCE,
+                rating=rating,
+                confidence=confidence,
+                source_url="",
+            )
+            return VerificationResult(
+                source=RULE_BASED_SOURCE,
+                rating=rating,
+                text=statement,
+                confidence=confidence,
+            )
+
         google_claim: Optional[dict]
         try:
             google_claim = self.fact_check_provider.search(statement)
@@ -38,9 +72,7 @@ class VerifyClaimUseCase:
             )
             return VerificationResult(source="Google Fact Check", rating=rating, text=text, confidence=1.0)
 
-        direct_fact = self._resolve_presidency_fact(statement)
-        if not direct_fact:
-            direct_fact = self._resolve_brazil_vote_obligation_fact(statement)
+        direct_fact = self._resolve_context_fact(statement)
         if direct_fact:
             rating, confidence = direct_fact
             self._safe_store(
@@ -96,6 +128,12 @@ class VerifyClaimUseCase:
 
         return source, rating, text, source_url
 
+    def _resolve_context_fact(self, statement: str) -> Optional[tuple[str, float]]:
+        direct_fact = self._resolve_presidency_fact(statement)
+        if direct_fact:
+            return direct_fact
+        return self._resolve_brazil_vote_obligation_fact(statement)
+
     def _resolve_presidency_fact(self, statement: str) -> Optional[tuple[str, float]]:
         text = self._normalize_text(statement)
         if not text:
@@ -134,6 +172,42 @@ class VerifyClaimUseCase:
         rating = "Verdadeiro" if is_true else "Falso"
         confidence = 0.98
         return rating, confidence
+
+    def _resolve_insufficient_context_question(self, statement: str) -> Optional[tuple[str, float]]:
+        text = self._normalize_text(statement)
+        if not text:
+            return None
+
+        is_question = "?" in statement or re.match(r"^(sera|seria|vai|foi|esta|e)\b", text)
+        if not is_question:
+            return None
+
+        asks_future_intent = bool(
+            re.search(
+                r"\b(vai|ira|pretende|deve|pode|sera)\b.*\b(candidat|concorrer|disputar)",
+                text,
+            )
+        )
+        asks_vague_arrest = bool(re.search(r"\b(foi|esta|ficou)\s+pres[ao]\b", text))
+        has_time_context = bool(re.search(r"\b(19\d{2}|20\d{2}|hoje|ontem|agora|atualmente)\b", text))
+        asks_unknown_president = bool(re.search(r"\b(e|eh|esta)\s+president", text)) and not (
+            "lula" in text or "bolsonaro" in text
+        )
+        asks_broad_safety = bool(
+            "urna" in text
+            and re.search(r"\b(segur|confiavel|fraudavel|fraude)\w*\b", text)
+            and len(text.split()) <= 6
+        )
+
+        if (
+            asks_future_intent
+            or asks_unknown_president
+            or asks_broad_safety
+            or (asks_vague_arrest and not has_time_context)
+        ):
+            return "Inconclusivo", 0.55
+
+        return None
 
     def _resolve_brazil_vote_obligation_fact(self, statement: str) -> Optional[tuple[str, float]]:
         text = self._normalize_text(statement)

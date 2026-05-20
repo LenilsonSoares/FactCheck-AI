@@ -1,6 +1,6 @@
 # Factum - FactCheck-AI
 
-Factum e uma aplicacao academica de verificacao de fatos no contexto eleitoral brasileiro. A solucao combina uma interface React Native/Expo, um backend FastAPI, consulta a Google Fact Check Tools API e um modelo local de Machine Learning treinado com dados coletados via `factcheckexplorer`.
+Factum e uma aplicacao academica e experimental de verificacao de fatos no contexto eleitoral brasileiro. A solucao combina uma interface React Native/Expo, um backend FastAPI, consulta a Google Fact Check Tools API e um modelo local de Machine Learning treinado com dados coletados via `factcheckexplorer`.
 
 ## Arquitetura
 
@@ -8,15 +8,15 @@ Factum e uma aplicacao academica de verificacao de fatos no contexto eleitoral b
 - **Backend Python:** FastAPI, localizado em `backend/`.
 - **API externa:** Google Fact Check Tools API.
 - **Machine Learning:** pipeline `TF-IDF + Logistic Regression`.
-- **Regras contextuais:** validacoes curtas para fatos eleitorais basicos antes do fallback estatistico.
+- **Regras contextuais:** validacoes curtas para fatos eleitorais basicos quando a API nao retorna resultado confiavel.
 - **Dataset:** dados brutos em `data/raw/`, dataset de treino em `data/processed/` e consultas de runtime em `data/runtime/`.
 
 ## Fluxo da Aplicacao
 
 1. O usuario envia uma afirmacao pelo app.
 2. O backend consulta a Google Fact Check Tools API.
-3. Se a API encontrar verificacao, o resultado oficial e retornado e salvo em `data/runtime/consultas.csv`.
-4. Se a API nao encontrar verificacao, o backend aplica regras contextuais curtas e, quando nao houver regra, consulta o modelo local de Machine Learning.
+3. Se a API encontrar uma verificacao com relevancia suficiente, o resultado oficial e retornado e salvo em `data/runtime/consultas.csv`.
+4. Se a API nao encontrar resultado confiavel, o backend aplica regras contextuais curtas e, quando nao houver regra, consulta o modelo local de Machine Learning.
 5. O resultado estimado e retornado ao usuario e tambem salvo em `data/runtime/consultas.csv`.
 
 ## Como Rodar no Windows
@@ -25,6 +25,7 @@ Crie/configure `backend/.env` com sua chave:
 
 ```env
 GOOGLE_API_KEY=sua_chave_aqui
+GOOGLE_MIN_RELEVANCE_SCORE=0.45
 CORS_ALLOW_ORIGINS=http://localhost:8081,http://127.0.0.1:8081
 ```
 
@@ -85,20 +86,24 @@ python scripts/normalize_dataset.py
 python scripts/train_model.py
 ```
 
-O normalizador remove ruido, corrige textos, elimina conflitos de merge e adiciona exemplos verdadeiros de ground truth eleitoral para reduzir o desbalanceamento.
+O normalizador preserva o formato `texto, fonte, source_url, veredito, data, image_url, tags`, remove ruido, corrige textos, elimina conflitos de merge e aplica um filtro leve para priorizar contexto eleitoral brasileiro. Casos estrangeiros muito fora do tema, como Franca, Argentina, Trump ou Biden sem relacao com Brasil, sao removidos do dataset final.
+
+Os exemplos verdadeiros de apoio ficam marcados como `ground_truth`, `fonte_oficial` e `eleicoes_brasil`, com origem em fontes institucionais como TSE e Constituicao Federal.
 
 Dataset atual normalizado:
 
-- 507 linhas
-- 451 exemplos `FALSO`
+- 478 linhas
+- 422 exemplos `FALSO`
 - 56 exemplos `VERDADEIRO`
 
 Metricas do ultimo treino:
 
-- Accuracy: 0.9804
+- Accuracy: 0.9479
 - Precision classe verdadeira: 1.00
-- Recall classe verdadeira: 0.82
-- F1-score classe verdadeira: 0.90
+- Recall classe verdadeira: 0.55
+- F1-score classe verdadeira: 0.71
+
+As metricas tambem sao salvas em `data/processed/metrics.json`.
 
 ## Testes
 
@@ -116,7 +121,7 @@ Resultado esperado:
 
 ## Observacao Academica
 
-Este sistema e experimental. A classificacao por Machine Learning nao garante veracidade absoluta; ela deve ser usada apenas como apoio a analise, priorizando verificacoes oficiais quando disponiveis.
+Este sistema e academico e experimental. A classificacao por regras ou Machine Learning nao garante veracidade absoluta; ela deve ser usada apenas como apoio a analise, priorizando verificacoes oficiais quando disponiveis na Google Fact Check Tools API.
 
 ## Apresentacao
 

@@ -1,4 +1,6 @@
 from pathlib import Path
+import re
+import unicodedata
 
 import pandas as pd
 
@@ -15,12 +17,54 @@ DST = DST_DIR / "dataset_eleicoes.csv"
 
 EXPECTED_COLUMNS = ["texto", "fonte", "source_url", "veredito", "data", "image_url", "tags"]
 
+BRAZIL_CONTEXT_TERMS = {
+    "brasil", "brasileiro", "brasileira", "brasileiros", "brasileiras", "tse",
+    "tribunal superior eleitoral", "justica eleitoral", "bolsonaro", "lula",
+    "dilma", "temer", "flavio bolsonaro", "jair bolsonaro",
+    "luiz inacio lula", "partido dos trabalhadores",
+    "stf", "camara dos deputados", "senado federal", "congresso nacional",
+    "amazonia", "sao paulo", "rio de janeiro", "minas gerais", "bahia",
+    "pernambuco", "rio grande do sul", "parana", "ceara", "distrito federal",
+}
+
+FOREIGN_OFF_CONTEXT_TERMS = {
+    "franca", "argentina", "trump", "biden", "donald trump", "joe biden",
+    "estados unidos", "eua", "usa", "kamala", "michael jordan", "arkansas",
+    "kentucky", "pensilvania", "javier milei", "cristina kirchner",
+    "partido republicano", "democrata", "fox news", "paraguai", "uruguai",
+    "equador",
+}
+
 
 def _find_source_file() -> Path:
     candidates = sorted(RAW_DIR.glob("elei*.csv"))
     if candidates:
         return candidates[0]
     raise FileNotFoundError(f"Nenhum CSV bruto encontrado em {RAW_DIR}")
+
+
+def _plain_text(value: str) -> str:
+    text = unicodedata.normalize("NFKD", str(value or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.lower()
+    text = re.sub(r"[^a-z0-9\s]", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _contains_term(text: str, terms: set[str]) -> bool:
+    return any(re.search(rf"\b{re.escape(term)}\b", text) for term in terms)
+
+
+def _is_brazilian_election_context(row: pd.Series) -> bool:
+    joined = _plain_text(
+        " ".join(
+            str(row.get(column, "") or "")
+            for column in ["texto", "fonte", "source_url", "tags"]
+        )
+    )
+    has_brazil_context = _contains_term(joined, BRAZIL_CONTEXT_TERMS)
+    has_foreign_context = _contains_term(joined, FOREIGN_OFF_CONTEXT_TERMS)
+    return has_brazil_context or not has_foreign_context
 
 
 def _fix_mojibake(value):
@@ -128,7 +172,7 @@ def _ground_truth_rows() -> list[dict[str, str]]:
             "veredito": "VERDADEIRO",
             "data": "",
             "image_url": "",
-            "tags": "['ground_truth', 'eleicoes']",
+            "tags": "['ground_truth', 'fonte_oficial', 'eleicoes_brasil']",
         }
         for text, source, url in rows
     ]
@@ -212,6 +256,9 @@ def normalize() -> None:
     df = df[text_values.ne("") & ~text_values.apply(_is_conflict_marker)].copy()
     df["veredito"] = df["veredito"].apply(_map_label)
     df = df[df["veredito"].notna()].copy()
+    before_context_filter = len(df)
+    df = df[df.apply(_is_brazilian_election_context, axis=1)].copy()
+    removed_context_rows = before_context_filter - len(df)
 
     ground_truth = pd.DataFrame(_ground_truth_rows(), columns=EXPECTED_COLUMNS)
     df = pd.concat([df, ground_truth], ignore_index=True)
@@ -220,6 +267,7 @@ def normalize() -> None:
 
     df.to_csv(DST, index=False, encoding="utf-8")
     print(f"Dataset normalizado salvo em: {DST} ({len(df)} linhas)")
+    print(f"Registros fora do contexto eleitoral brasileiro removidos: {removed_context_rows}")
     print(df["veredito"].value_counts().to_string())
 
 
