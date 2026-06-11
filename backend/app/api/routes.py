@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 @router.get("/")
 def root() -> dict:
     return {
-        "name": "FactCheck-AI API",
+        "name": "Factum API",
         "status": "online",
         "endpoints": ["/health", "/verify"],
     }

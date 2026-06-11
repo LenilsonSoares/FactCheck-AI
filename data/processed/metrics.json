@@ -1,5 +1,5 @@
 {
-  "dataset_path": "C:\\Users\\Terminal-0\\Documents\\GitHub\\FactCheck-AI\\data\\processed\\dataset_eleicoes.csv",
+  "dataset_path": "data/processed/dataset_eleicoes.csv",
   "rows_used": 478,
   "class_distribution": {
     "0": 422,

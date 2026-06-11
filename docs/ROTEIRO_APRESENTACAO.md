@@ -1,70 +1,70 @@
-# Roteiro de Apresentacao
+# Roteiro de Apresentação
 
-## Slide 1 - Factum / FactCheck-AI
+## Slide 1 - Factum
 
-- Sistema academico e experimental de verificacao de fatos eleitorais.
-- Combina API oficial de fact-checking e Machine Learning.
-- Aviso: ferramenta experimental de apoio, nao veredito absoluto.
+- Verificador de fatos para afirmações do contexto eleitoral brasileiro.
+- Combina checagem externa, regras contextuais e classificador local.
+- A proposta é apoiar a análise, não substituir uma checagem jornalística ou institucional.
 
 ## Slide 2 - Problema
 
-- Noticias falsas podem influenciar decisoes eleitorais.
-- O usuario precisa verificar afirmacoes rapidamente.
-- Nem toda afirmacao tem checagem pronta em uma API externa.
+- Notícias falsas podem influenciar decisões eleitorais.
+- O usuário precisa verificar afirmações rapidamente.
+- Nem toda afirmação tem checagem pronta em uma API externa.
 
 ## Slide 3 - Arquitetura
 
 - Frontend: React Native/Expo.
 - Backend: Python com FastAPI.
-- API externa: Google Fact Check Tools API, consultada primeiro.
-- ML local: TF-IDF + Logistic Regression.
-- Dados: dataset bruto, processado e consultas de runtime.
+- Consulta externa: Google Fact Check Tools API.
+- Classificador local: TF-IDF + Logistic Regression.
+- Dados: dataset bruto, dataset processado e consultas de runtime.
 
-## Slide 4 - Fluxo da Aplicacao
+## Slide 4 - Fluxo da Aplicação
 
-1. Usuario envia uma afirmacao.
-2. Backend consulta Google Fact Check.
-3. Se existir verificacao confiavel, retorna resultado oficial.
-4. Se a API nao encontrar resultado confiavel, usa regras contextuais curtas quando cabivel.
-5. Quando nao ha regra contextual, consulta o modelo local.
-6. Resultado e salvo no CSV de consultas.
+1. Usuário envia uma afirmação.
+2. Backend aplica regras contextuais para perguntas sem contexto suficiente e fatos eleitorais simples.
+3. Quando não há regra local aplicável, consulta o Google Fact Check.
+4. Se existir verificação confiável, retorna o resultado externo.
+5. Sem verificação externa, consulta o classificador local.
+6. Resultado é salvo no CSV de consultas.
 
 ## Slide 5 - Dataset
 
 - Coleta inicial com `factcheckexplorer`.
-- Palavras-chave: eleicao, bolsonaro, lula, pt, campanha, urna, voto, fraude.
-- Normalizacao remove ruido, conflitos de merge e labels invalidas.
-- Filtro leve prioriza contexto eleitoral brasileiro e remove casos estrangeiros sem relacao com Brasil.
-- Exemplos verdadeiros de apoio vem de fontes institucionais como TSE e Constituicao Federal.
+- Palavras-chave: eleição, bolsonaro, lula, pt, campanha, urna, voto, fraude.
+- Normalização remove ruído, conflitos de merge e labels inválidas.
+- Filtro leve prioriza contexto eleitoral brasileiro.
+- Exemplos verdadeiros de apoio vêm de fontes institucionais como TSE e Constituição Federal.
 - Dataset atual: 478 linhas, 422 falsas e 56 verdadeiras.
 
-## Slide 6 - Machine Learning
+## Slide 6 - Classificador Local
 
-- Vetorizacao textual com TF-IDF.
+- Vetorização textual com TF-IDF.
 - Classificador: Logistic Regression.
-- Balanceamento no treino com upsampling da classe minoritaria.
-- `class_weight="balanced"` mantem o treino mais atento ao desbalanceamento.
-- Resultado possivel: Verdadeiro, Falso ou Inconclusivo.
-- Regras contextuais tratam fatos eleitorais simples antes do fallback estatistico, apenas quando a API nao retorna verificacao confiavel.
+- Balanceamento no treino com upsampling da classe minoritária.
+- `class_weight="balanced"` reduz o impacto do desbalanceamento.
+- Resultado possível: Verdadeiro, Falso ou Inconclusivo.
+- Regras contextuais tratam fatos eleitorais simples antes da consulta externa ou do classificador.
 
-## Slide 7 - Metricas
+## Slide 7 - Métricas
 
 - Accuracy: 0.9479.
-- Precision classe verdadeira: 1.00.
-- Recall classe verdadeira: 0.55.
-- F1-score classe verdadeira: 0.71.
-- Metricas salvas em `data/processed/metrics.json`.
-- Observacao: metricas sao academicas e dependem da qualidade do dataset.
+- Precision da classe verdadeira: 1.00.
+- Recall da classe verdadeira: 0.55.
+- F1-score da classe verdadeira: 0.71.
+- Métricas salvas em `data/processed/metrics.json`.
+- A leitura das métricas depende do tamanho e da qualidade do dataset.
 
-## Slide 8 - Demonstracao
+## Slide 8 - Demonstração
 
-- Rodar `./iniciar_tudo.ps1`.
+- Rodar `.\iniciar_tudo.ps1`.
 - Abrir frontend em `http://localhost:8081`.
-- Testar uma afirmacao com resultado confiavel da API.
-- Testar uma afirmacao sem resultado externo para acionar o ML.
+- Testar uma afirmação com resultado externo.
+- Testar uma afirmação sem resultado externo para acionar o classificador local.
 
-## Slide 9 - Conclusao
+## Slide 9 - Conclusão
 
-- A solucao cumpre o fluxo pedido na atividade.
-- Usa dataset inicial, API externa, ML treinado e interface funcional.
-- Melhorias futuras: dataset maior, modelos mais robustos e avaliacao humana dos resultados.
+- A solução entrega interface, API, dataset, treinamento e consulta externa.
+- O fluxo combina regras contextuais, verificações externas e fallback local quando necessário.
+- Melhorias futuras: dataset maior, revisão humana de amostras e avaliação contínua dos resultados.

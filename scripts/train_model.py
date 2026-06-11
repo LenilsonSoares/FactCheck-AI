@@ -19,6 +19,13 @@ MODEL_OUTPUT_DIR = BASE_DIR / "backend" / "app" / "ml_models"
 METRICS_OUTPUT = BASE_DIR / "data" / "processed" / "metrics.json"
 
 
+def _project_path(path: Path) -> str:
+    try:
+        return path.relative_to(BASE_DIR).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def normalize_labels(val):
     """Padroniza diferentes vereditos para formato binário (0 ou 1)."""
     if pd.isna(val):
@@ -120,7 +127,7 @@ def train():
 
     METRICS_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     metrics = {
-        "dataset_path": str(DATASET_PATH),
+        "dataset_path": _project_path(DATASET_PATH),
         "rows_used": int(len(y)),
         "class_distribution": {str(k): int(v) for k, v in class_distribution.items()},
         "train_distribution_before_upsampling": {

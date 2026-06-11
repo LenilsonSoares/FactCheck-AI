@@ -1,48 +1,5 @@
 texto,fonte,source_url,veredito,data,image_url,tags,confidence
-lula e presidente,Rule-based Context,,Verdadeiro,,,[],0.98
-lula e bolsonaro e presidente,Rule-based Context,,Verdadeiro,,,[],0.98
-bolsonaro e presidente,Rule-based Context,,Falso,,,[],0.98
-voto no brasil e obrigatorio?,Rule-based Context,,Verdadeiro,,,[],0.98
-voto no brasil nao e obrigatorio?,Rule-based Context,,Falso,,,[],0.98
-Lula vai candidatar a presidente nesse ano?,Rule-based Context,,Verdadeiro,,,[],0.98
-O Lula está morto ?,Internal AI Model,,Falso,,,[],0.8501596882677396
-O bolsonaro está vivo?,Internal AI Model,,Falso,,,[],0.8411274702125344
-O voto no Brasil e secreto.,Internal AI Model,,Verdadeiro,,,[],0.8364650541357588
-O voto no Brasil e secreto.,Internal AI Model,,Verdadeiro,,,[],0.8364650541357588
-Lula vai se candidatar a presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
-"""AGORA É OFICIAL!! Bolsonaro será candidato a presidente em 2026""",UOL Notícias,https://noticias.uol.com.br/confere/ultimas-noticias/2024/12/17/inelegibilidade-bolsonaro-revogada-falso.htm,Falso,,,[],1.0
-Bolsonaro foi preso por ato terrorista e expulso do Exército,UOL Notícias,https://noticias.uol.com.br/confere/ultimas-noticias/2022/10/16/bolsonaro-ja-foi-preso.htm,Falso,,,[],1.0
-Bolsonaro confessou que só venceu eleições em 2018 porque Lula foi preso,Aos Fatos,https://www.aosfatos.org/noticias/bolsonaro-nao-confessou-venceu-eleicoes-2018-lula-foi-preso/,falso,,,[],1.0
-Bolsonaro está livre!! 2026 vem para presidente.,UOL Notícias,https://noticias.uol.com.br/confere/ultimas-noticias/2025/06/12/video-bolsonaro-reverte-inelegibilidade-candidato-2026-falso.htm,Falso,,,[],1.0
-Lula vai candidatar a presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
-A urna é segura?,Internal AI Model,,Inconclusivo,,,[],0.5688279204772562
-Bolsonaro foi preso por ato terrorista e expulso do Exército,UOL Notícias,https://noticias.uol.com.br/confere/ultimas-noticias/2022/10/16/bolsonaro-ja-foi-preso.htm,Falso,,,[],1.0
-Bolsonaro confessou que só venceu eleições em 2018 porque Lula foi preso,Aos Fatos,https://www.aosfatos.org/noticias/bolsonaro-nao-confessou-venceu-eleicoes-2018-lula-foi-preso/,falso,,,[],1.0
-Bolsonaro está livre!! 2026 vem para presidente.,UOL Notícias,https://noticias.uol.com.br/confere/ultimas-noticias/2025/06/12/video-bolsonaro-reverte-inelegibilidade-candidato-2026-falso.htm,Falso,,,[],1.0
-Lula vai candidatar a presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
-Bolsonaro foi preso?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula foi preso?,Rule-based Context,,Inconclusivo,,,[],0.55
-Bolsonaro vai candidatar a presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula vai candidatar a presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-A urna e segura?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula vai candidatar a presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula vai candidatar a presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula vai candidatar a presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula vai se candidatar a presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-"Lula é o maior presidente do mundo, diz Trump",Estadão,https://www.estadao.com.br/estadao-verifica/trump-lula-maior-presidente-do-mundo-falso/,Falso,,,[],1.0
-Lula é presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
-Bolsonaro é presidente?,Rule-based Context,,Falso,,,[],0.98
-Lula vai candidatar a presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula é presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
-Bolsonaro é presidente?,Rule-based Context,,Falso,,,[],0.98
-Favio é presidente?,Internal AI Model,,Inconclusivo,,,[],0.5878447064283827
-Favio é presidente?,Internal AI Model,,Inconclusivo,,,[],0.5878447064283827
-Favio é presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula é presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
-Bolsonaro é presidente?,Rule-based Context,,Falso,,,[],0.98
-Favio é presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula é presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
-Bolsonaro é presidente?,Rule-based Context,,Falso,,,[],0.98
-Lula vai candidatar a presidente?,Rule-based Context,,Inconclusivo,,,[],0.55
-Lula é candidato a presidente?,Rule-based Context,,Verdadeiro,,,[],0.98
-Bolsonaro é candidato a presidente?,Rule-based Context,,Falso,,,[],0.98
+Boato eleitoral qualquer sem checagem externa,Classificador local,,Inconclusivo,,,[],0.6022326109327358
+A urna é segura?,Regras contextuais,,Inconclusivo,,,[],0.55
+Lula é presidente em 2025?,Regras contextuais,,Verdadeiro,,,[],0.98
+O Tribunal Superior Eleitoral coordena as eleições no Brasil.,Classificador local,,Inconclusivo,,,[],0.6451393420749547

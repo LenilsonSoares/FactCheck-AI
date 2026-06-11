@@ -1,16 +1,16 @@
 # Como Iniciar
 
-## Execucao rapida
+## Execução rápida
 
 Na raiz do projeto:
 
 ```powershell
-./iniciar_tudo.ps1
+.\iniciar_tudo.ps1
 ```
 
 O script:
 
-1. instala dependencias, se necessario;
+1. instala dependências, se necessário;
 2. normaliza `data/raw/eleicoes.csv` ou `data/raw/eleições.csv`;
 3. garante que `backend/app/ml_models/modelo.pkl` exista;
 4. inicia o backend em `http://127.0.0.1:8001`;
@@ -19,7 +19,7 @@ O script:
 Para encerrar:
 
 ```powershell
-./parar_tudo.ps1
+.\parar_tudo.ps1
 ```
 
 ## Backend manual
@@ -56,12 +56,12 @@ http://localhost:8081
 Na raiz:
 
 ```powershell
-python -m pytest -q
+.\venv\Scripts\python.exe -m pytest -q
 ```
 
 ## Problemas comuns
 
-- **Backend indisponivel:** confirme se a API esta em `http://127.0.0.1:8001/health`.
+- **Backend indisponível:** confirme se a API está em `http://127.0.0.1:8001/health`.
 - **Frontend apontando para porta errada:** confirme `EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8001`.
 - **Modelo ausente:** rode `python scripts/normalize_dataset.py` e `python scripts/train_model.py`.
-- **Chave Google ausente:** configure `GOOGLE_API_KEY` em `backend/.env`. Sem a chave, o sistema usa o fallback de ML.
+- **Chave Google ausente:** configure `GOOGLE_API_KEY` em `backend/.env`. Sem a chave, o sistema usa regras contextuais e o classificador local.

@@ -1,1 +1,1 @@
-"""FactCheck-AI backend package."""
+"""Factum backend package."""

@@ -10,7 +10,8 @@ from app.application.ports import ClaimClassifier, DatasetRepository, FactCheckP
 
 
 logger = logging.getLogger(__name__)
-RULE_BASED_SOURCE = "Rule-based Context"
+RULE_BASED_SOURCE = "Regras contextuais"
+LOCAL_CLASSIFIER_SOURCE = "Classificador local"
 
 
 @dataclass
@@ -72,23 +73,6 @@ class VerifyClaimUseCase:
             )
             return VerificationResult(source="Google Fact Check", rating=rating, text=text, confidence=1.0)
 
-        direct_fact = self._resolve_context_fact(statement)
-        if direct_fact:
-            rating, confidence = direct_fact
-            self._safe_store(
-                text=statement,
-                source=RULE_BASED_SOURCE,
-                rating=rating,
-                confidence=confidence,
-                source_url="",
-            )
-            return VerificationResult(
-                source=RULE_BASED_SOURCE,
-                rating=rating,
-                text=statement,
-                confidence=confidence,
-            )
-
         try:
             prediction = self.classifier.predict(statement)
             rating = prediction.get("rating")
@@ -100,14 +84,14 @@ class VerifyClaimUseCase:
 
         self._safe_store(
             text=statement,
-            source="Internal AI Model",
+            source=LOCAL_CLASSIFIER_SOURCE,
             rating=rating,
             confidence=confidence,
             source_url="",
         )
 
         return VerificationResult(
-            source="Internal AI Model",
+            source=LOCAL_CLASSIFIER_SOURCE,
             rating=rating,
             text=statement,
             confidence=confidence,

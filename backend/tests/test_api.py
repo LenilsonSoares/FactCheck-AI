@@ -9,7 +9,7 @@ from app.domain.models import VerificationResult
 class StubUseCase:
     def execute(self, statement: str) -> VerificationResult:
         return VerificationResult(
-            source="Internal AI Model",
+            source="Classificador local",
             rating="Falso",
             text=statement,
             confidence=0.87,
@@ -43,7 +43,7 @@ def test_verify_success_uses_dependency_override():
 
     assert response.status_code == 200
     payload = response.json()
-    assert payload["source"] == "Internal AI Model"
+    assert payload["source"] == "Classificador local"
     assert payload["rating"] == "Falso"
     assert payload["text"] == "Boato eleitoral qualquer"
     assert 0 <= payload["confidence"] <= 1

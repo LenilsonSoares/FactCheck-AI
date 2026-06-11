@@ -185,3 +185,7 @@ cython_debug/
 
 # Local generated presentation workspace
 .deck_factum/
+
+# Runtime data generated while using the app
+data/runtime/*.csv
+!data/runtime/.gitkeep

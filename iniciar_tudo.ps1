@@ -7,17 +7,24 @@ $ErrorActionPreference = "Stop"
 $RootDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $BackendDir = Join-Path $RootDir "backend"
 $FrontendDir = Join-Path $RootDir "frontend"
-$VenvPython = Join-Path $RootDir ".venv\Scripts\python.exe"
-$PythonExe = if (Test-Path $VenvPython) { $VenvPython } else { "python" }
+$VenvCandidates = @(
+    (Join-Path $RootDir ".venv\Scripts\python.exe"),
+    (Join-Path $RootDir "venv\Scripts\python.exe")
+)
+$PythonExe = ($VenvCandidates | Where-Object { Test-Path $_ } | Select-Object -First 1)
+if (-not $PythonExe) {
+    $PythonExe = "python"
+}
 
-Write-Host "== Factum / FactCheck-AI ==" -ForegroundColor Cyan
+Write-Host "== Factum ==" -ForegroundColor Cyan
 Write-Host "Raiz: $RootDir"
+Write-Host "Python: $PythonExe"
 
 if (-not $SkipInstall) {
-    Write-Host "`nInstalando dependencias do backend..." -ForegroundColor Cyan
+    Write-Host "`nInstalando dependências do backend..." -ForegroundColor Cyan
     & $PythonExe -m pip install -r (Join-Path $BackendDir "requirements.txt")
 
-    Write-Host "`nInstalando dependencias do frontend..." -ForegroundColor Cyan
+    Write-Host "`nInstalando dependências do frontend..." -ForegroundColor Cyan
     Push-Location $FrontendDir
     npm install
     Pop-Location
@@ -49,4 +56,4 @@ Start-Sleep -Seconds 3
 Write-Host "Iniciando frontend em http://localhost:8081" -ForegroundColor Green
 Start-Process powershell.exe -ArgumentList "-NoExit", "-ExecutionPolicy", "Bypass", "-Command", $FrontendCommand
 
-Write-Host "`nPronto. Para parar os servicos, execute: ./parar_tudo.ps1" -ForegroundColor Cyan
+Write-Host "`nPronto. Para parar os serviços, execute: .\parar_tudo.ps1" -ForegroundColor Cyan

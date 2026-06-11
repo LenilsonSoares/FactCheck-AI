@@ -1,13 +1,13 @@
-# Estrutura Completa
+# Estrutura do Projeto
 
 ```text
-FactCheck-AI/
+Factum/
 ├── backend/
 │   ├── app/
-│   │   ├── api/                 # Rotas, schemas e dependencias FastAPI
+│   │   ├── api/                 # Rotas, schemas e dependências FastAPI
 │   │   ├── application/         # Caso de uso principal e portas
 │   │   ├── domain/              # Modelos de resposta
-│   │   ├── infrastructure/      # Adaptadores Google, ML e CSV
+│   │   ├── infrastructure/      # Adaptadores Google, classificador e CSV
 │   │   ├── ml_models/           # modelo.pkl treinado
 │   │   ├── services/            # Cliente Google e loader do modelo
 │   │   └── main.py              # App FastAPI
@@ -16,45 +16,44 @@ FactCheck-AI/
 ├── data/
 │   ├── raw/                     # Coleta bruta do factcheckexplorer
 │   ├── processed/               # Dataset limpo usado no treino
-│   └── runtime/                 # Consultas feitas durante o uso do app
-├── docs/                        # Documentacao e roteiro da apresentacao
+│   └── runtime/                 # Consultas geradas em execução
+├── docs/                        # Documentação e apresentação
 ├── frontend/                    # App React Native/Expo
-├── notebooks/                   # Analises exploratorias
-├── scripts/                     # Coleta, normalizacao e treino
-├── iniciar_tudo.ps1             # Inicializacao completa
+├── scripts/                     # Coleta, normalização e treino
+├── iniciar_tudo.ps1             # Inicialização completa
 ├── parar_tudo.ps1               # Encerramento das portas locais
-├── pytest.ini                   # Testes rodando a partir da raiz
+├── pytest.ini                   # Configuração dos testes
 └── README.md
 ```
 
 ## Responsabilidade por Camada
 
-- `frontend/`: recebe a afirmacao do usuario, chama `/verify` e exibe resultado, confianca, fonte e historico local.
-- `backend/app/api/`: expoe `/health` e `/verify`.
-- `backend/app/application/`: implementa o fluxo API externa primeiro, ML depois.
-- `backend/app/services/google_api.py`: consulta Google Fact Check Tools API.
+- `frontend/`: recebe a afirmação do usuário, chama `/verify` e exibe resultado, confiança, fonte e histórico local.
+- `backend/app/api/`: expõe `/health` e `/verify`.
+- `backend/app/application/`: orquestra regras contextuais, consulta externa e classificador local.
+- `backend/app/services/google_api.py`: consulta a Google Fact Check Tools API.
 - `backend/app/services/ml_engine.py`: carrega e executa o modelo `joblib`.
 - `backend/app/infrastructure/csv_dataset_repository.py`: salva consultas de runtime em CSV local.
 - `scripts/bootstrap_dataset.py`: coleta dataset inicial com `factcheckexplorer`.
-- `scripts/normalize_dataset.py`: limpa, normaliza, deduplica e fortalece o dataset.
+- `scripts/normalize_dataset.py`: limpa, normaliza, deduplica e filtra o dataset.
 - `scripts/train_model.py`: treina `TF-IDF + Logistic Regression`.
 
-## Fluxo Tecnico
+## Fluxo Técnico
 
-1. Usuario envia uma afirmacao.
+1. Usuário envia uma afirmação.
 2. Frontend envia `POST /verify`.
-3. Backend consulta Google Fact Check Tools API.
-4. Havendo verificacao, retorna resultado oficial e salva consulta.
-5. Sem verificacao externa, aplica regras contextuais curtas quando cabivel.
-6. Quando nao ha regra contextual, chama o modelo local.
-7. Modelo retorna `Verdadeiro`, `Falso` ou `Inconclusivo`.
-8. Resultado e salvo em `data/runtime/consultas.csv`.
+3. Backend aplica regras contextuais para perguntas sem contexto suficiente e fatos eleitorais simples.
+4. Quando não há regra local aplicável, consulta a Google Fact Check Tools API.
+5. Havendo verificação relevante, retorna o resultado externo.
+6. Sem verificação externa, chama o classificador local.
+7. O resultado volta como `Verdadeiro`, `Falso` ou `Inconclusivo`.
+8. A consulta é salva em `data/runtime/consultas.csv`.
 
-## Entregaveis Cobertos
+## Entregáveis
 
-- Codigo fonte: backend, frontend e scripts.
+- Código fonte: backend, frontend e scripts.
 - Dataset utilizado: `data/raw/` e `data/processed/dataset_eleicoes.csv`.
 - Modelo treinado: `backend/app/ml_models/modelo.pkl`.
-- Documentacao: `README.md` e `docs/`.
-- Apresentacao: `docs/ROTEIRO_APRESENTACAO.md` e `docs/Factum-Apresentacao.pptx`.
-- Demonstracao: `./iniciar_tudo.ps1` inicia backend e frontend.
+- Documentação: `README.md` e `docs/`.
+- Apresentação: `docs/ROTEIRO_APRESENTACAO.md` e `docs/Factum-Apresentacao.pptx`.
+- Demonstração: `.\iniciar_tudo.ps1` inicia backend e frontend.

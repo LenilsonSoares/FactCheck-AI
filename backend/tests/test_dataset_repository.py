@@ -8,7 +8,7 @@ def test_csv_dataset_repository_writes_runtime_consultas(tmp_path):
 
     repo.append(
         text="O voto no Brasil e obrigatorio?",
-        source="Rule-based Context",
+        source="Regras contextuais",
         rating="Verdadeiro",
         confidence=0.98,
         source_url="",
@@ -22,5 +22,5 @@ def test_csv_dataset_repository_writes_runtime_consultas(tmp_path):
 
     assert len(rows) == 1
     assert rows[0]["texto"] == "O voto no Brasil e obrigatorio?"
-    assert rows[0]["fonte"] == "Rule-based Context"
+    assert rows[0]["fonte"] == "Regras contextuais"
     assert rows[0]["veredito"] == "Verdadeiro"

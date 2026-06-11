@@ -20,7 +20,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import Constants from 'expo-constants';
-import { Feather, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -316,7 +316,7 @@ const App = () => {
   const getSourceType = (source) => {
     const normalized = String(source || '').trim().toLowerCase();
     if (normalized.includes('google')) return 'api';
-    if (normalized.includes('rule')) return 'rules';
+    if (normalized.includes('rule') || normalized.includes('regra')) return 'rules';
     return 'ml';
   };
 
@@ -327,7 +327,7 @@ const App = () => {
       case 'rules':
         return 'Contexto eleitoral interno';
       default:
-        return 'Modelo de IA';
+        return 'Classificador local';
     }
   };
 
@@ -518,7 +518,7 @@ const App = () => {
                 ]} 
               />
             </View>
-            <Text style={styles.loadingText}>Carregando experiência Factum...</Text>
+            <Text style={styles.loadingText}>Carregando Factum...</Text>
           </View>
         </View>
       </LinearGradient>
@@ -561,7 +561,7 @@ const App = () => {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Verifique uma informação</Text>
             <Text style={styles.cardSubtitle}>
-              Digite uma afirmação ou notícia para analisarmos com IA.
+              Digite uma afirmação ou notícia para verificação.
             </Text>
 
             {lastError ? (
@@ -614,8 +614,8 @@ const App = () => {
               >
                 <View style={styles.resultHeader}>
                   <View style={styles.resultLabelContainer}>
-                    <FontAwesome5 name="robot" size={14} color="#8b9bb5" />
-                    <Text style={styles.resultLabel}> Análise Factum</Text>
+                    <Feather name="clipboard" size={14} color="#8b9bb5" />
+                    <Text style={styles.resultLabel}> Verificação Factum</Text>
                   </View>
                   <View style={[styles.statusPill, { backgroundColor: result.bg }]}>
                     {getStatusIcon(result.status)}

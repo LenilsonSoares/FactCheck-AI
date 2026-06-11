@@ -28,8 +28,8 @@ def _parse_cors_origins() -> list[str]:
     return [origin.strip() for origin in raw.split(",") if origin.strip()]
 
 app = FastAPI(
-    title="FactCheck-AI API",
-    description="Sistema de verificação de fatos com Google API e Machine Learning",
+    title="Factum API",
+    description="Sistema de verificação de fatos eleitorais com fontes externas e classificador local",
     version="1.1.0"
 )
 
